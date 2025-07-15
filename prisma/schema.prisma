@@ -22,7 +22,7 @@ enum Role {
 model User {
   id         String   @id @default(uuid())
   email      String   @unique
-  password   String?  // Null si es login por Google o Apple
+  password   String?  // Null si es login por Google
   name       String?
   role       Role   @default(OWNER)
   provider   String   // 'credentials' | 'google'
@@ -30,8 +30,33 @@ model User {
   createdAt  DateTime @default(now())
   business   Business @relation(fields: [businessId], references: [id])
   businessId String
-  avatar     String?
+  
   expenses   Expense[] // Relación 1:N - un usuario puede tener muchos gastos de sueldo
+  profiles   Profile[] // Relación 1:N - un usuario puede tener múltiples perfiles
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  username    String?  @unique
+  avatar      String?
+  phone       String?
+  secondaryEmail String?
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Relación con User
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  
+  // Relación con Business (opcional - para perfiles específicos de negocio)
+  business    Business? @relation(fields: [businessId], references: [id])
+  businessId  String?
+  
+  // Campos de auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, businessId]) // Un usuario solo puede tener un perfil por negocio
 }
 
 model Business {
@@ -39,6 +64,7 @@ model Business {
   name       String
   logo       String?
   users      User[]   // Relación 1:N - un negocio puede tener muchos usuarios
+  profiles   Profile[] // Relación 1:N - un negocio puede tener muchos perfiles
   products   Product[] // Relación 1:N - un negocio puede tener muchos productos
   sales      Sale[]   // Relación 1:N - un negocio puede tener muchas ventas
   expenses   Expense[] // Relación 1:N - un negocio puede tener muchos gastos
