@@ -27,12 +27,13 @@ model User {
   role       Role   @default(OWNER)
   provider   String   // 'credentials' | 'google'
   providerId String?  // ID externo
-  createdAt  DateTime @default(now())
-  business   Business @relation(fields: [businessId], references: [id])
-  businessId String
+  registeredAt  DateTime @default(now())
   
-  expenses   Expense[] // Relación 1:N - un usuario puede tener muchos gastos de sueldo
-  profiles   Profile[] // Relación 1:N - un usuario puede tener múltiples perfiles
+  // Relación 1:1 con Profile (opcional)
+  profile    Profile?
+  
+  // Relación N:N con Business a través de UserBusiness
+  userBusinesses UserBusiness[]
 }
 
 model Profile {
@@ -44,44 +45,86 @@ model Profile {
   description String?
   isActive    Boolean  @default(true)
   
-  // Relación con User
+  // Relación 1:1 con User
   user        User     @relation(fields: [userId], references: [id])
-  userId      String
-  
-  // Relación con Business (opcional - para perfiles específicos de negocio)
-  business    Business? @relation(fields: [businessId], references: [id])
-  businessId  String?
+  userId      String   @unique // Garantiza relación 1:1
   
   // Campos de auditoría
-  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@unique([userId, businessId]) // Un usuario solo puede tener un perfil por negocio
 }
 
 model Business {
   id         String   @id @default(uuid())
   name       String
   logo       String?
-  users      User[]   // Relación 1:N - un negocio puede tener muchos usuarios
-  profiles   Profile[] // Relación 1:N - un negocio puede tener muchos perfiles
+  description String?
+  address    String?
+  phone      String?
+  email      String?
+  website    String?
+  
+  // Relación N:N con User a través de UserBusiness
+  userBusinesses UserBusiness[]
+  
   products   Product[] // Relación 1:N - un negocio puede tener muchos productos
   sales      Sale[]   // Relación 1:N - un negocio puede tener muchas ventas
   expenses   Expense[] // Relación 1:N - un negocio puede tener muchos gastos
   businessClients BusinessClient[] // Tabla intermedia para relación N:N con clientes
+  categories Category[] // Categorías específicas del negocio
   createdAt  DateTime @default(now())
 }
 
+// Nueva tabla intermedia para relación N:N entre User y Business
+model UserBusiness {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
+  
+  // Campos adicionales para la relación
+  role       Role     @default(EMPLOYEE) // Rol del usuario en este negocio específico
+  isActive   Boolean  @default(true)
+  joinedAt   DateTime @default(now())
+  
+
+  @@unique([userId, businessId]) // Evita duplicados
+}
+
+enum ProductType {
+  PHYSICAL    // Producto físico (ropa, tecnología, etc.)
+  DIGITAL     // Producto digital (software, ebooks, etc.)
+  SERVICE     // Servicio (consultoría, mantenimiento, etc.)
+  FOOD        // Comida y bebidas
+  SUBSCRIPTION // Suscripciones
+}
+
 model Product {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   name        String
   price       Float
   description String?
-  stock       Int
-  business    Business @relation(fields: [businessId], references: [id])
+  stock       Int         @default(0)
+  type        ProductType @default(PHYSICAL)
+  
+  // Campos específicos por tipo
+  sku         String?     @unique // Código de producto
+  barcode     String?     // Código de barras
+  weight      Float?      // Peso en kg
+  dimensions  String?     // Dimensiones (LxWxH)
+  
+  // Campos para productos físicos
+  isActive    Boolean     @default(true)
+  isFeatured  Boolean     @default(false)
+  
+  // Relaciones
+  business    Business    @relation(fields: [businessId], references: [id])
   businessId  String
-  productCategories ProductCategory[] // Tabla intermedia para relación N:N con categorías
-  saleItems   SaleItem[] // Relación 1:N - un producto puede estar en muchas ventas
+  productCategories ProductCategory[]
+  productAttributes ProductAttribute[] // Atributos dinámicos
+  saleItems   SaleItem[]
+  
+  // Auditoría
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -90,9 +133,38 @@ model Category {
   id          String   @id @default(uuid())
   name        String
   description String?
-  productCategories ProductCategory[] // Tabla intermedia para relación N:N con productos
+  icon        String?  // Icono para UI
+  color       String?  // Color para UI
+  
+  // Relación con Business (OPCIONAL)
+  business    Business? @relation(fields: [businessId], references: [id])
+  businessId  String?   // Null = categoría global, String = categoría específica
+  
+  // Jerarquía de categorías
+  parentId    String?
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  
+  // Relaciones
+  productCategories ProductCategory[]
+  
+  // Auditoría
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Atributos dinámicos para productos
+model ProductAttribute {
+  id          String   @id @default(uuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  key         String   // Ej: "talla", "color", "material", "ingredientes"
+  value       String   // Valor del atributo
+  type        String   @default("text") // text, number, boolean, date
+  
+  createdAt   DateTime @default(now())
+
+  @@unique([productId, key]) // Un producto no puede tener el mismo atributo duplicado
 }
 
 // Tabla intermedia para relación N:N entre Product y Category
@@ -163,10 +235,7 @@ model Expense {
   date        DateTime
   business    Business @relation(fields: [businessId], references: [id])
   businessId  String
-  user        User?    @relation(fields: [userId], references: [id]) // Opcional - para gastos de sueldo
-  userId      String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
 
 enum SaleStatus {
