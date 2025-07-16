@@ -19,15 +19,33 @@ enum Role {
   EMPLOYEE
 }
 
+enum AuthProvider {
+  CREDENTIALS
+  GOOGLE
+}
+
 model User {
   id         String   @id @default(uuid())
   email      String   @unique
   password   String?  // Null si es login por Google
   name       String?
   role       Role   @default(OWNER)
-  provider   String   // 'credentials' | 'google'
-  providerId String?  // ID externo
+  provider   AuthProvider @default(CREDENTIALS) // Enum en lugar de String
+  providerId String?  // ID externo (Google ID, etc.)
+  
+  // Campos para confirmación de email
+  isEmailVerified Boolean @default(false)
+  emailVerificationToken String? @unique // Token para verificar email
+  emailVerificationExpires DateTime? // Fecha de expiración del token
+  
+  // Campos para recuperación de contraseña
+  passwordResetToken String? @unique
+  passwordResetExpires DateTime?
+  
+  // Campos de auditoría
   registeredAt  DateTime @default(now())
+  lastLoginAt   DateTime?
+  updatedAt     DateTime @updatedAt
   
   // Relación 1:1 con Profile (opcional)
   profile    Profile?

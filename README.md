@@ -95,11 +95,39 @@ DATABASE_URL=postgresql://usuario:password@localhost:5432/tu_db?schema=public
 
 ```
 
-Eres mi asistente experto en NestJS, Prisma y autenticación. Quiero que generes un módulo completo AuthModule con lo siguiente:
-1. ...
-2. ...
-...
-No agregues instrucciones sobre cómo correrlo o proponer cambios: genera directamente el código.
+Eres mi asistente experto en NestJS, Prisma y autenticación. Quiero que generes un **módulo completo `AuthModule`** con lo siguiente:
+
+1. **Estructura y dependencias**: /auth: auth.module, auth.service, auth.controller; /strategies: google, jwt; guards: JwtAuthGuard, EmailConfirmedGuard; /dto.
+2. **Google OAuth** con Passport:
+   - `passport-google-oauth20`
+   - Ruta `/auth/google`, `/auth/google/redirect`
+   - Validación e inserción/actualización del usuario en DB.
+3. **JWT**:
+   - `@nestjs/jwt` para tokens `access_token`
+   - `JwtStrategy` para validar rutas protegidas.
+4. **Prisma Schema**:
+   - Revisa el modelo User para utilizar las propiedades correctas
+5. **Confirmación de correo**:
+   - Campo `isEmailVerified`
+   - Token JWT de confirmación con expiración
+   - Endpoint `POST /auth/confirm-email`
+   - `EmailConfirmedGuard` que bloquea rutas si no está confirmado.
+6. **Manejo de errores y constantes**:
+   - Usa `HttpExceptions` con constantes (importadas desde `errors.constants.ts`)
+7. **Tests**:
+   - Crea un test unitario básico para `AuthService.validateOAuthLogin`.
+   - Crea un e2e test para flujo Google OAuth redirigiendo y validando token.
+8. **Configuración**:
+   - Usa `@nestjs/config` para variables de entorno (`GOOGLE_CLIENT_ID`, `JWT_SECRET`, SMTP, etc.).
+   - `MailerModule` configurado con nodemailer para envío de confirmación.
+9. **Estilo de código**:
+   - Usa TypeScript, formato limpio, DTOs, validaciones con `class-validator`.
+   - Código modular, bien estructurado, con comentario breve por clase.
+10. **Resúmenes**:
+    - Al inicio del módulo, incluye un comentario explicando el flujo completo.
+    - En cada archivo explica su propósito.
+
+No agregues instrucciones sobre cómo correrlo o proponer cambios: genera directamente el código estructurado de la forma que escribirías en un repo producido profesionalmente.
 
 
 ```
