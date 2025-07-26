@@ -12,6 +12,7 @@ export class MailController {
 
   @Post('send-test')
   async sendTestEmail(@Body('to') to: string) {
+    console.log(to);
     return this.mailService.sendTemplateMail({
       to,
       subject: 'Correo de prueba 🚀',

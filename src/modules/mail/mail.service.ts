@@ -1,18 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { transporter } from './mailer.config';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as Handlebars from 'handlebars';
+import { templates } from './templates/templates.store';
 
 @Injectable()
 export class MailService {
-  private compileTemplate(templateName: string, context: any): string {
-    const filePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
-    const source = fs.readFileSync(filePath, 'utf-8');
-    const compiled = Handlebars.compile(source);
-    return compiled(context);
-  }
-
   async verifyConnection(): Promise<void> {
     try {
       await transporter.verify();
@@ -33,13 +24,20 @@ export class MailService {
     template: string;
     context: any;
   }) {
-    const html = this.compileTemplate(template, context);
+    const html = templates[template](context);
 
-    return transporter.sendMail({
-      from: `"Soporte" <${process.env.SMTP_USER}>`,
-      to,
-      subject,
-      html,
-    });
+    try {
+      transporter.sendMail({
+        from: `"Soporte" <${process.env.SMTP_USER}>`,
+        to,
+        subject,
+        html,
+      });
+      return {
+        message: 'Correo enviado correctamente',
+      };
+    } catch (error) {
+      throw new Error('Error al enviar el correo');
+    }
   }
 }

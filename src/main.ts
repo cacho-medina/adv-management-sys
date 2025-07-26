@@ -25,20 +25,19 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
-
+  app.setGlobalPrefix('api/v1');
   const configService = app.get(ConfigService);
-  console.log(configService.get<string>('jwt.secret'));
-  const PORT = configService.get<number>('port') || 4004;
+  const PORT = configService.get<number>('port') || 4008;
   const NODE_ENV = configService.get<string>('nodeEnv');
 
   await app.listen(PORT, () => {
     Logger.log(
-      `🚀 Application running on port: http://localhost:${PORT}`,
+      `🚀 Application running on port: http://localhost:${PORT}/api/v1`,
       NestApplication.name,
     );
     Logger.log(`🌍 Current environment: ${NODE_ENV}`, NestApplication.name);
     Logger.log(
-      `🔐 Auth endpoints available at: http://localhost:${PORT}/auth`,
+      `🔐 Auth endpoints available at: http://localhost:${PORT}/api/v1/auth`,
       NestApplication.name,
     );
   });

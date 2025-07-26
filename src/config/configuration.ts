@@ -4,7 +4,7 @@ export const envVaidationSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid('development', 'production', 'test', 'provision')
     .default('development'),
-  PORT: Joi.number().port().default(3000),
+  PORT: Joi.number().port().default(4008),
 
   // Google OAuth2
   GOOGLE_CLIENT_ID: Joi.string().required(),
@@ -56,7 +56,7 @@ export interface Config {
 
 export const configuration = (): Config => ({
   nodeEnv: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT, 10) || 3000,
+  port: parseInt(process.env.PORT, 10) || 4008,
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_SECRET_ID,

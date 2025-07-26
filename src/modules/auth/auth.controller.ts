@@ -1,19 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  Query,
-  UseGuards,
-  Body,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { Request, Response } from 'express';
+import { Controller, Post, Query, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ConfirmEmailDto } from './dto/confirm-email.dto';
-import { JwtAuthGuard } from './guards/jwt.auth.guard';
-import { EmailConfirmedGuard } from './guards/email-confirmed.guard';
 import { CreateAccountDto, LoginDto } from './dto/create-auth.dto';
 
 @Controller('auth')
@@ -35,8 +21,8 @@ export class AuthController {
   }
 
   @Post('resend-verification')
-  async resendVerificationEmail(@Body() email: string) {
-    return this.authService.resendVerificationEmail(email);
+  async resendVerificationEmail(@Body() email: { email: string }) {
+    return this.authService.resendVerificationEmail(email.email);
   }
 
   @Post('forgot-password')

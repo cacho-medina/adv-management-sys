@@ -89,7 +89,6 @@ export class AuthService {
 
   async sendVerificationEmail(token: string, user: User): Promise<void> {
     const verificationUrl = `${process.env.FRONTEND_URL}/auth/confirm-email?token=${token}`;
-
     await this.mailerService.sendTemplateMail({
       to: user.email,
       subject: 'Verifica tu email',
@@ -104,6 +103,7 @@ export class AuthService {
 
   async resendVerificationEmail(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
+    console.log('user', user);
     if (!user) {
       throw new BadRequestException('Usuario no encontrado');
     }
@@ -118,7 +118,11 @@ export class AuthService {
         emailVerificationExpires: new Date(Date.now() + 4 * 60 * 60 * 1000), // 4 horas
       },
     });
-    await this.sendVerificationEmail(token, user);
+    try {
+      await this.sendVerificationEmail(token, user);
+    } catch (error) {
+      throw new BadRequestException('Error al enviar el email de verificacion');
+    }
     return {
       message: 'Email de verificación reenviado',
     };
@@ -134,15 +138,16 @@ export class AuthService {
     if (!user) {
       throw new BadRequestException('Token de verificacion invalido');
     }
-    if (
+    /* REVISAR CONDICION DE EXPIRACION DEL TOKEN
+     if (
       user.emailVerificationExpires &&
       user.emailVerificationExpires < new Date()
     ) {
       throw new BadRequestException(
         'Token de verificacion expirado. Por favor, solicita uno nuevo.',
       );
-    }
-    await this.prisma.user.update({
+    } */
+    const userUpdated = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         isEmailVerified: true,
@@ -150,7 +155,8 @@ export class AuthService {
         emailVerificationExpires: null,
       },
     });
-    const tokenLogin = await this.generateJwtToken(user);
+
+    const tokenLogin = await this.generateJwtToken(userUpdated);
     return {
       message: 'Email verificado correctamente',
       user: {
@@ -172,12 +178,13 @@ export class AuthService {
     };
 
     return this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('jwt.secret'),
-      expiresIn: this.configService.get<string>('jwt.expiresIn'),
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN'),
     });
   }
 
   async requestPasswordReset(email: string) {
+    console.log('email', email);
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new BadRequestException('Usuario no encontrado');
 
@@ -193,15 +200,19 @@ export class AuthService {
     });
 
     // enviar correo
-    await this.mailerService.sendTemplateMail({
-      to: email,
-      subject: 'Recuperación de contraseña',
-      template: 'password-reset',
-      context: {
-        name: user.name,
-        resetUrl: `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`,
-      },
-    });
+    try {
+      await this.mailerService.sendTemplateMail({
+        to: email,
+        subject: 'Recuperación de contraseña',
+        template: 'password-reset',
+        context: {
+          name: user.name,
+          resetUrl: `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException('Error al enviar el email de recuperación');
+    }
 
     return { message: 'Correo de recuperación enviado' };
   }
@@ -231,6 +242,8 @@ export class AuthService {
         passwordResetExpires: null,
       },
     });
+
+    //evaluar envio de email
 
     return { message: 'Contraseña actualizada correctamente' };
   }
