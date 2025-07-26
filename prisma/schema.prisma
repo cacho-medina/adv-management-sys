@@ -102,7 +102,7 @@ model UserBusiness {
   
   // Campos adicionales para la relación
   role       Role     @default(EMPLOYEE) // Rol del usuario en este negocio específico
-  isActive   Boolean  @default(true)
+  isEmployee   Boolean  @default(true)
   joinedAt   DateTime @default(now())
   
 
