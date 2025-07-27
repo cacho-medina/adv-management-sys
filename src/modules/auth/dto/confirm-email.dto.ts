@@ -15,6 +15,7 @@ export class ConfirmEmailDto {
  */
 export class ConfirmEmailResponseDto {
   message: string;
+  newUser: boolean;
   user: {
     id: string;
     email: string;

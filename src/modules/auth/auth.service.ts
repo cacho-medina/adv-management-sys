@@ -156,6 +156,20 @@ export class AuthService {
       },
     });
 
+    //crear perfil si no existe
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId: user.id },
+    });
+    if (!profile) {
+      await this.prisma.profile.create({
+        data: {
+          userId: user.id,
+          username: user.email.split('@')[0],
+          updatedAt: new Date(),
+        },
+      });
+    }
+
     const tokenLogin = await this.generateJwtToken(userUpdated);
     return {
       message: 'Email verificado correctamente',
@@ -165,6 +179,7 @@ export class AuthService {
         isEmailVerified: user.isEmailVerified,
         token: tokenLogin,
       },
+      newUser: true, //si es false el front restringe el acceso a la pagina de onboarding
       nextUrl: `${process.env.FRONTEND_URL}/onboarding/create-profile`,
     };
   }
