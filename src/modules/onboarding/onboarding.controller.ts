@@ -8,31 +8,33 @@ import {
   Delete,
 } from '@nestjs/common';
 import { OnboardingService } from './onboarding.service';
-import {
-  CreateProfileOnboardingDto,
-  CreateBusinessOnboardingDto,
-  CreateCategoriesOnboardingDto,
-  CreateProductsOnboardingDto,
-} from './dto/create-onboarding.dto';
+import { CreateProfileOnboardingDto } from './dto/create-onboarding.dto';
+import { CreateBusinessDto } from '../business/dto/business.dto';
+import { BusinessService } from '../business/business.service';
 
 @Controller('onboarding')
 export class OnboardingController {
-  constructor(private readonly onboardingService: OnboardingService) {}
+  constructor(
+    private readonly onboardingService: OnboardingService,
+    private readonly businessService: BusinessService,
+  ) {}
 
   @Post('complete-profile')
   createProfile(@Body() createProfileDto: CreateProfileOnboardingDto) {
     return this.onboardingService.createProfile(createProfileDto);
   }
   @Post('create-business')
-  createBusiness(@Body() createBusinessDto: CreateBusinessOnboardingDto) {
-    return this.onboardingService.createBusiness(createBusinessDto);
+  createBusiness(@Body() createBusinessDto: CreateBusinessDto) {
+    return this.businessService.createBusiness(createBusinessDto);
   }
-  @Post('create-categories')
-  createCategories(@Body() createCategoriesDto: CreateCategoriesOnboardingDto) {
-    return this.onboardingService.createCategories(createCategoriesDto);
+
+  //mover a modulo Products & Categories
+  /* @Post('create-categories')
+  createCategories(@Body() createCategoriesDto: CreateCategoriesDto) {
+    return this.businessService.createCategories(createCategoriesDto);
   }
   @Post('create-products')
-  createProducts(@Body() createProductsDto: CreateProductsOnboardingDto) {
-    return this.onboardingService.createProducts(createProductsDto);
-  }
+  createProducts(@Body() createProductsDto: CreateProductsDto) {
+    return this.businessService.createProducts(createProductsDto);
+  } */
 }
