@@ -11,12 +11,15 @@ import { OnboardingService } from './onboarding.service';
 import { CreateProfileOnboardingDto } from './dto/create-onboarding.dto';
 import { CreateBusinessDto } from '../business/dto/business.dto';
 import { BusinessService } from '../business/business.service';
+import { ProductsService } from '../products/products.service';
+import { CreateProductsDto } from '../products/dto/create-product.dto';
 
 @Controller('onboarding')
 export class OnboardingController {
   constructor(
     private readonly onboardingService: OnboardingService,
     private readonly businessService: BusinessService,
+    private readonly products: ProductsService,
   ) {}
 
   @Post('complete-profile')
@@ -32,9 +35,9 @@ export class OnboardingController {
   /* @Post('create-categories')
   createCategories(@Body() createCategoriesDto: CreateCategoriesDto) {
     return this.businessService.createCategories(createCategoriesDto);
-  }
+  }*/
   @Post('create-products')
   createProducts(@Body() createProductsDto: CreateProductsDto) {
-    return this.businessService.createProducts(createProductsDto);
-  } */
+    return this.products.create(createProductsDto);
+  }
 }
