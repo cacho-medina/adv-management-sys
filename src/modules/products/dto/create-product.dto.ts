@@ -1,22 +1,93 @@
 import { ProductType } from '@prisma/client';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsUUID,
+  IsArray,
+  ValidateNested,
+  IsBoolean,
+  Min,
+  MaxLength,
+  IsUrl,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
-/* export class CreateCategoriesDto {
-    name: string;
-    description: string;
-    icon: string;
-    color: string;
-  } */
+class ProductAttributeDto {
+  @IsString()
+  @MaxLength(50)
+  key: string;
+
+  @IsString()
+  @MaxLength(255)
+  value: string;
+
+  @IsString()
+  @IsOptional()
+  type?: string = 'text';
+}
+
 export class CreateProductsDto {
+  @IsUUID()
   businessId: string;
+
+  @IsString()
+  @MaxLength(100)
   name: string;
+
+  @IsNumber()
+  @Min(0)
   price: number;
-  description: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  description?: string;
+
+  @IsNumber()
+  @Min(0)
   stock: number;
+
+  @IsEnum(ProductType)
   type: ProductType;
-  sku: string;
-  image: string;
-  categoryId: string;
-  attributes: {
-    name: string;
-  }[];
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  sku?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  barcode?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  weight?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  dimensions?: string;
+
+  @IsUrl()
+  @IsOptional()
+  image?: string;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  categoryIds?: string[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductAttributeDto)
+  @IsOptional()
+  attributes?: ProductAttributeDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  isFeatured?: boolean = false;
 }

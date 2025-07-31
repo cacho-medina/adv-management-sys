@@ -6,6 +6,8 @@ import { ConfigModule } from '@nestjs/config';
 import { envVaidationSchema } from '../../config/configuration';
 import { UserModule } from '../user/user.module';
 import { MailModule } from '../mail/mail.module';
+import { ProductsModule } from '../products/products.module';
+import { CategoriesModule } from '../categories/categories.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { MailModule } from '../mail/mail.module';
     AuthModule,
     UserModule,
     MailModule,
+    ProductsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
 })

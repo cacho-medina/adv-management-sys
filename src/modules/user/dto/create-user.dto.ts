@@ -8,31 +8,13 @@ import {
 } from 'class-validator';
 import { Role, AuthProvider } from '@prisma/client';
 
-export class CreateOwnerDto {
-  @IsUUID()
-  @IsNotEmpty()
+export class CompleteProfileDto {
   userId: string;
-
-  // Campos del perfil
-  @IsOptional()
-  @IsString()
-  username?: string;
-
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @IsOptional()
-  @IsString()
-  secondaryEmail?: string;
-
-  @IsOptional()
-  @IsString()
-  avatarUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
+  username: string;
+  avatar: string;
+  phone: string;
+  secondaryEmail: string;
+  description: string;
 }
 
 export class CreateUserDto {

@@ -1,8 +1,9 @@
-import { NestApplication, NestFactory } from '@nestjs/core';
+import { NestApplication, NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './modules/app/app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { GlobalAuthGuard } from './modules/auth/guards/global-auth.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,6 +16,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Aplicar guard global de autenticación
+  const reflector = app.get(Reflector);
+  app.useGlobalGuards(new GlobalAuthGuard(reflector));
 
   // Configurar filtro de excepciones global
   app.useGlobalFilters(new AllExceptionsFilter());

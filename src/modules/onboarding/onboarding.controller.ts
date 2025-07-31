@@ -1,43 +1,62 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
-import { OnboardingService } from './onboarding.service';
-import { CreateProfileOnboardingDto } from './dto/create-onboarding.dto';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { UserService } from '../user/user.service';
+import { CompleteProfileDto } from '../user/dto/create-user.dto';
 import { CreateBusinessDto } from '../business/dto/business.dto';
 import { BusinessService } from '../business/business.service';
-import { ProductsService } from '../products/products.service';
 import { CreateProductsDto } from '../products/dto/create-product.dto';
+import { ProductsService } from '../products/products.service';
+import { CreateCategoriesDto } from '../categories/dto/create-category.dto';
+import { CategoriesService } from '../categories/categories.service';
+import { JwtAuthGuard } from '../auth/guards/jwt.auth.guard';
+import { EmailConfirmedGuard } from '../auth/guards/email-confirmed.guard';
+import { RolesGuard } from '../auth/guards/role.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('onboarding')
+@UseGuards(JwtAuthGuard, EmailConfirmedGuard, RolesGuard)
+@Roles(Role.OWNER)
 export class OnboardingController {
   constructor(
-    private readonly onboardingService: OnboardingService,
+    private readonly userService: UserService,
     private readonly businessService: BusinessService,
-    private readonly products: ProductsService,
+    private readonly productsService: ProductsService,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
   @Post('complete-profile')
-  createProfile(@Body() createProfileDto: CreateProfileOnboardingDto) {
-    return this.onboardingService.createProfile(createProfileDto);
+  createProfile(@Body() completeProfileDto: CompleteProfileDto) {
+    const profile = this.userService.completeProfile(completeProfileDto);
+    return {
+      message: 'Profile completed successfully',
+      next: `${process.env.FRONTEND_URL}/onboarding/business`,
+    };
   }
   @Post('create-business')
   createBusiness(@Body() createBusinessDto: CreateBusinessDto) {
-    return this.businessService.createBusiness(createBusinessDto);
+    const newBusiness = this.businessService.createBusiness(createBusinessDto);
+    return {
+      newBusiness,
+      message: 'Business created successfully',
+      next: `${process.env.FRONTEND_URL}/onboarding/profile`,
+    };
   }
-
-  //mover a modulo Products & Categories
-  /* @Post('create-categories')
-  createCategories(@Body() createCategoriesDto: CreateCategoriesDto) {
-    return this.businessService.createCategories(createCategoriesDto);
-  }*/
   @Post('create-products')
   createProducts(@Body() createProductsDto: CreateProductsDto) {
-    return this.products.create(createProductsDto);
+    const newProducts = this.productsService.create(createProductsDto);
+    return {
+      newProducts,
+      message: 'Products created successfully',
+      next: `${process.env.FRONTEND_URL}/dashboard/business`,
+    };
+  }
+  @Post('create-categories')
+  createCategories(@Body() createCategoriesDto: CreateCategoriesDto) {
+    const newCategories = this.categoriesService.create(createCategoriesDto);
+    return {
+      newCategories,
+      message: 'Categories created successfully',
+      next: `${process.env.FRONTEND_URL}/onboarding/products`,
+    };
   }
 }

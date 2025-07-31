@@ -1,181 +1,186 @@
-# 🛡️ NestJS Auth Module con Google OAuth, Prisma y Verificación de Email
+# Análisis del Sistema de Gestión Empresarial (ERP)
 
-Este repositorio contiene un **AuthModule** listo para integrar autenticación con **Google**, **JWT**, verificación de correo y perfil de negocio en **NestJS** usando **Prisma** y **PostgreSQL**.
+## 📋 Endpoints Disponibles
 
-## ⚙️ 🏗️ Requisitos previos
+### 🔐 Módulo de Autenticación (/auth)
 
-Asegurate de tener tu proyecto NestJS iniciado y Prisma configurado:
+- POST /auth/create-account - Crear nueva cuenta de usuario
+- POST /auth/confirm-email - Confirmar email con token
+- POST /auth/resend-verification - Reenviar email de verificación
+- POST /auth/forgot-password - Solicitar recuperación de contraseña
+- POST /auth/reset-password - Restablecer contraseña
+- POST /auth/login - Iniciar sesión
+  Nota: Los endpoints de Google OAuth están comentados pero implementados
 
-```bash
-nest new my-app
-cd my-app
-npm install prisma @prisma/client
-npx prisma init
+### 👤 Módulo de Usuarios (/users)
 
-```
+- POST /users/create-profile - Crear perfil de propietario
 
-## 📦 Dependencias necesarias
+### 🏢 Módulo de Onboarding (/onboarding)
 
-Instalá todas las librerías necesarias con este comando:
+- POST /onboarding/complete-profile - Completar perfil durante onboarding
+- POST /onboarding/create-business - Crear negocio
+- POST /onboarding/create-products - Crear productos durante onboarding
 
-```bash
+### 📦 Módulo de Productos (/products)
 
-npm install \
-  @nestjs/passport passport passport-google-oauth20 \
-  @nestjs/jwt @nestjs/config \
-  @nestjs-modules/mailer nodemailer \
-  class-validator class-transformer \
-  prisma @prisma/client
+- POST /products - Crear producto
+- GET /products - Obtener todos los productos
+- GET /products/:id - Obtener producto por ID
+- PATCH /products/:id - Actualizar producto
+- DELETE /products/:id - Eliminar producto
 
+### 🏷️ Módulo de Categorías (/categories)
 
-```
+- POST /categories - Crear categoría
+- GET /categories - Obtener todas las categorías
+- GET /categories/:id - Obtener categoría por ID
+- PATCH /categories/:id - Actualizar categoría
+- DELETE /categories/:id - Eliminar categoría
 
-## 🧰 Estructura recomendada de carpetas
+### 🏠 Controlador Principal (/)
 
-```
+- GET / - Endpoint de salud ("Hello World!")
 
-src/
-  main.ts
-  app.module.ts
-  auth/
-    auth.module.ts
-    auth.controller.ts
-    auth.service.ts
-    google.strategy.ts
-    jwt.strategy.ts
-    email-confirmed.guard.ts
-    dto/
-      oauth-login.dto.ts
-      confirm-email.dto.ts
-  common/
-    constants/
-      errors.constants.ts
-    filters/
-      all-exceptions.filter.ts
-  prisma/
-    schema.prisma
-.env
+## 🏗️ Descripción de Módulos
 
+### 🔐 AuthModule
 
-```
+Propósito : Gestión completa de autenticación y autorización
 
-## ⚙️ Ejemplo de archivo .env
+- Funcionalidades :
+  - Registro de usuarios con verificación por email
+  - Login con JWT
+  - Recuperación de contraseñas
+  - Integración con Google OAuth (preparado)
+  - Validación de email obligatoria
+- Tecnologías : JWT, bcrypt, Passport, Nodemailer
 
-```
+### 👤 UserModule
 
-# Google OAuth2
-GOOGLE_CLIENT_ID=tu_client_id
-GOOGLE_CLIENT_SECRET=tu_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/redirect
+Propósito : Gestión de usuarios y perfiles
 
-# JWT
-JWT_SECRET=supersecreto
-JWT_EXPIRES_IN=1h
-JWT_VERIFICATION_SECRET=verificacionsecreta
-JWT_VERIFICATION_EXPIRES_IN=1d
+- Funcionalidades :
+  - Creación de perfiles de propietarios
+  - Gestión de información personal
+  - Relación con múltiples negocios
+- Características : Soporte para roles (ADMIN, OWNER, EMPLOYEE)
 
-# SMTP para Mailer
-SMTP_HOST=smtp.mailtrap.io
-SMTP_PORT=2525
-SMTP_USER=usuarioSMTP
-SMTP_PASS=claveSMTP
-SMTP_FROM="No Reply" <noreply@tudominio.com>
+### 🏢 BusinessModule
 
-# Prisma
-DATABASE_URL=postgresql://usuario:password@localhost:5432/tu_db?schema=public
+Propósito : Gestión de negocios/empresas
 
+- Funcionalidades :
+  - Creación y gestión de negocios
+  - Relación N:N con usuarios
+  - Información empresarial completa
+- Características : Soporte multi-tenant
 
-```
+### 📦 ProductsModule
 
-## 🤖 Cómo usar el prompt en Cursor AI
+Propósito : Gestión completa de productos
 
-1. Asegurate de tener el proyecto configurado como se detalla arriba.
+- Funcionalidades :
+  - CRUD completo de productos
+  - Múltiples tipos de productos (PHYSICAL, DIGITAL, SERVICE, FOOD, SUBSCRIPTION)
+  - Gestión de inventario
+  - Atributos dinámicos
+- Características : SKU, códigos de barras, dimensiones, peso
 
-2. Abri Cursor AI y crea un nuevo prompt con este contenido:
+### 🏷️ CategoriesModule
 
-```
+Propósito : Sistema de categorización
 
-Eres mi asistente experto en NestJS, Prisma y autenticación. Quiero que generes un **módulo completo `AuthModule`** con lo siguiente:
+- Funcionalidades :
+  - CRUD de categorías
+  - Jerarquía de categorías (padre-hijo)
+  - Categorías globales y específicas por negocio
+  - Personalización visual (iconos, colores)
 
-1. **Estructura y dependencias**: /auth: auth.module, auth.service, auth.controller; /strategies: google, jwt; guards: JwtAuthGuard, EmailConfirmedGuard; /dto.
-2. **Google OAuth** con Passport:
-   - `passport-google-oauth20`
-   - Ruta `/auth/google`, `/auth/google/redirect`
-   - Validación e inserción/actualización del usuario en DB.
-3. **JWT**:
-   - `@nestjs/jwt` para tokens `access_token`
-   - `JwtStrategy` para validar rutas protegidas.
-4. **Prisma Schema**:
-   - Revisa el modelo User para utilizar las propiedades correctas
-5. **Confirmación de correo**:
-   - Campo `isEmailVerified`
-   - Token JWT de confirmación con expiración
-   - Endpoint `POST /auth/confirm-email`
-   - `EmailConfirmedGuard` que bloquea rutas si no está confirmado.
-6. **Manejo de errores y constantes**:
-   - Usa `HttpExceptions` con constantes (importadas desde `errors.constants.ts`)
-7. **Tests**:
-   - Crea un test unitario básico para `AuthService.validateOAuthLogin`.
-   - Crea un e2e test para flujo Google OAuth redirigiendo y validando token.
-8. **Configuración**:
-   - Usa `@nestjs/config` para variables de entorno (`GOOGLE_CLIENT_ID`, `JWT_SECRET`, SMTP, etc.).
-   - `MailerModule` configurado con nodemailer para envío de confirmación.
-9. **Estilo de código**:
-   - Usa TypeScript, formato limpio, DTOs, validaciones con `class-validator`.
-   - Código modular, bien estructurado, con comentario breve por clase.
-10. **Resúmenes**:
-    - Al inicio del módulo, incluye un comentario explicando el flujo completo.
-    - En cada archivo explica su propósito.
+### 🚀 OnboardingModule
 
-No agregues instrucciones sobre cómo correrlo o proponer cambios: genera directamente el código estructurado de la forma que escribirías en un repo producido profesionalmente.
+Propósito : Proceso de configuración inicial
 
+- Funcionalidades :
+  - Guía paso a paso para nuevos usuarios
+  - Creación de perfil, negocio y productos iniciales
+  - Integración con otros módulos
 
-```
+### 📧 MailModule
 
-3. Esperá que Cursor genere los archivos del módulo (auth/), Prisma DTOs, migraciones y lógica completa.
+Propósito : Sistema de notificaciones por email
 
-4. Revisa, ajustá imports, ejecutá npx prisma migrate dev y npm run start:dev.
+- Funcionalidades :
+  - Envío de emails transaccionales
+  - Templates con Handlebars
+  - Verificación de email y recuperación de contraseñas
 
-## 🧪 Comandos útiles
+### 🗄️ PrismaModule
 
-```bash
+Propósito : Capa de acceso a datos
 
-# Iniciar server de desarrollo
-npm run start:dev
+- Funcionalidades :
+  - ORM con PostgreSQL
+  - Migraciones automáticas
+  - Type-safe database access
 
-# Aplica migraciones y sincroniza Prisma
-npx prisma migrate dev
+## 🚀 Mejoras Sugeridas
 
-# Generar cliente de Prisma si cambias el schema
-npx prisma generate
+### 🔒 Seguridad
 
-# Ejecutar tests
-npm test
+1. 1. Implementar rate limiting para endpoints de autenticación
+2. 2. Activar Google OAuth (código ya implementado pero comentado)
+3. 3. Agregar middleware de autorización basado en roles
+4. 4. Implementar refresh tokens para mayor seguridad
+5. 5. Validación de entrada más robusta con class-validator
 
-# Once Router for OAuth Google
-# - Navegá a http://localhost:3000/auth/google
+### 📊 Funcionalidades de Negocio
 
+1. 1. Módulo de Ventas : Sistema completo de ventas y facturación
+2. 2. Módulo de Clientes : Gestión de clientes y relaciones
+3. 3. Módulo de Inventario : Control de stock en tiempo real
+4. 4. Módulo de Reportes : Analytics y dashboards
+5. 5. Módulo de Gastos : Gestión de gastos empresariales
+6. 6. Sistema de Notificaciones : Push notifications y emails automáticos
 
-```
+### 🏗️ Arquitectura
 
-## ✅ Flujo resumido del módulo
+1. 1. Implementar CQRS para operaciones complejas
+2. 2. Agregar Redis para caché y sesiones
+3. 3. Implementar Event Sourcing para auditoría
+4. 4. Microservicios para escalabilidad
+5. 5. API Gateway para gestión centralizada
 
-1. Usuario inicia sesión con Google → /auth/google.
+### 🧪 Testing y Calidad
 
-2. Passport valida y pasa al servicio (validateOAuthLogin), que crea/actualiza usuario.
+1. 1. Aumentar cobertura de tests (actualmente básica)
+2. 2. Implementar tests de integración más completos
+3. 3. Agregar tests E2E para flujos críticos
+4. 4. Implementar CI/CD pipeline
+5. 5. Documentación con Swagger/OpenAPI
 
-3. Se envía un token JWT y se envía correo de confirmación con token separado.
+### 🔧 DevOps y Monitoreo
 
-4. Usuario accede a /auth/confirm-email?token=... → isEmailConfirmed = true.
+1. 1. Logging estructurado con Winston
+2. 2. Métricas y monitoreo con Prometheus
+3. 3. Health checks más detallados
+4. 4. Docker containerization
+5. 5. Configuración de entornos (dev, staging, prod)
 
-5. Se usa Guard (JwtAuthGuard, EmailConfirmedGuard) para proteger rutas.
+### 📱 UX/UI
 
-6. El usuario crea su perfil de negocio vinculado a su ID en la base de datos.
+1. 1. Paginación en endpoints de listado
+2. 2. Filtros y búsqueda avanzada
+3. 3. Ordenamiento configurable
+4. 4. Soft delete para recuperación de datos
+5. 5. Versionado de API para compatibilidad
 
-## 🔄 Personalización y ampliación
+## 🛠️ Stack Tecnológico
 
-- Editá errors.constants.ts para mensajes o códigos personalizados.
-
-- Si necesitas flujos de negocio 1:N, modificá el modelo Profile.
-
-- Añadí guardias extras, estrategias OAuth o lógica de negocio según tus requerimientos.
+- Framework : NestJS
+- Base de Datos : PostgreSQL con Prisma ORM
+- Autenticación : JWT + Passport
+- Validación : class-validator
+- Email : Nodemailer + Handlebars
+- Testing : Jest
+- Linting : ESLint + Prettier
