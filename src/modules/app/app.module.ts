@@ -8,6 +8,8 @@ import { UserModule } from '../user/user.module';
 import { MailModule } from '../mail/mail.module';
 import { ProductsModule } from '../products/products.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { BusinessModule } from '../business/business.module';
+import { OnboardingModule } from '../onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { CategoriesModule } from '../categories/categories.module';
     MailModule,
     ProductsModule,
     CategoriesModule,
+    BusinessModule,
+    OnboardingModule,
   ],
   controllers: [AppController],
 })

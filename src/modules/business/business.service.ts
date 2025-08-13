@@ -21,9 +21,13 @@ import { Role } from '@prisma/client';
 export class BusinessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createBusiness(createBusinessDto: CreateBusinessDto) {
-    const { userId, name, description, address, phone, email, website, logo } =
+  async createBusiness(userId: string, createBusinessDto: CreateBusinessDto) {
+    const { name, description, address, phone, email, website, logo } =
       createBusinessDto;
+
+    if (!userId) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -65,7 +69,7 @@ export class BusinessService {
     limit: number = 10,
   ): Promise<BusinessListResponseDto> {
     const skip = (page - 1) * limit;
-
+    console.log(userId);
     const [userBusinesses, total] = await Promise.all([
       this.prisma.userBusiness.findMany({
         where: { userId },
@@ -310,8 +314,7 @@ export class BusinessService {
       email: emp.user.email,
       role: emp.role,
       joinedAt: emp.joinedAt,
-      isActive: emp.user.profile?.isActive ?? true,
-      avatar: emp.user.profile?.avatar,
+      isActive: emp.user?.isActive ?? true,
     }));
   }
 

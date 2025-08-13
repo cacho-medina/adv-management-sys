@@ -14,6 +14,7 @@ import { ConfirmEmailResponseDto } from './dto/confirm-email.dto';
 import { CreateAccountDto, LoginDto } from './dto/create-auth.dto';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +26,7 @@ export class AuthService {
     private userService: UserService,
   ) {}
 
-  async login(credentials: LoginDto) {
+  async login(credentials: LoginDto, res: Response) {
     const { email, password } = credentials;
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -38,7 +39,6 @@ export class AuthService {
     if (!user.isEmailVerified) {
       throw new UnauthorizedException(AUTH_ERRORS.EMAIL_NOT_VERIFIED.message);
     }
-    const token = await this.generateJwtToken(user);
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
@@ -46,8 +46,10 @@ export class AuthService {
     const profile = await this.prisma.profile.findUnique({
       where: { userId: user.id },
     });
+    const access_token = await this.generateJwtToken(user);
+    //const refresh_token = await this.generateJwtToken(user);
 
-    return { token, profile };
+    return { access_token, profile };
   }
 
   async createAccount(createAccountDto: CreateAccountDto) {
@@ -88,7 +90,8 @@ export class AuthService {
   }
 
   async sendVerificationEmail(token: string, user: User): Promise<void> {
-    const verificationUrl = `${process.env.FRONTEND_URL}/auth/confirm-email?token=${token}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}/auth/confirm-account?token=${token}`;
+
     await this.mailerService.sendTemplateMail({
       to: user.email,
       subject: 'Verifica tu email',
@@ -128,7 +131,10 @@ export class AuthService {
     };
   }
 
-  async confirmEmail(token: string): Promise<ConfirmEmailResponseDto> {
+  async confirmEmail(
+    token: string,
+    res: Response,
+  ): Promise<ConfirmEmailResponseDto> {
     const user = await this.prisma.user.findUnique({
       where: {
         emailVerificationToken: token,
@@ -170,14 +176,28 @@ export class AuthService {
       });
     }
 
-    const tokenLogin = await this.generateJwtToken(userUpdated);
+    const access_token = await this.generateJwtToken(userUpdated);
+    const refresh_token = await this.generateJwtToken(userUpdated);
+    res.cookie('access_token', access_token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60 * 24, // 1 dia
+    });
+    res.cookie('refresh_token', refresh_token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+    });
     return {
       message: 'Email verificado correctamente',
       user: {
         id: user.id,
         email: user.email,
         isEmailVerified: user.isEmailVerified,
-        token: tokenLogin,
+        access_token,
+        refresh_token,
       },
       newUser: true, //si es false el front restringe el acceso a la pagina de onboarding
       nextUrl: `${process.env.FRONTEND_URL}/onboarding/create-profile`,
@@ -188,7 +208,6 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
       isEmailVerified: user.isEmailVerified,
     };
 
@@ -262,87 +281,4 @@ export class AuthService {
 
     return { message: 'Contraseña actualizada correctamente' };
   }
-
-  /**
-   * Valida el login OAuth y crea/actualiza el usuario
-   */
-  /* async validateOAuthLogin(profile: any): Promise<any> {
-    const { email, name, providerId } = profile;
-
-    if (!email) {
-      throw new BadRequestException(AUTH_ERRORS.OAUTH_EMAIL_REQUIRED.message);
-    }
-
-    // Buscar usuario existente por email o providerId
-    let user = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { providerId, provider: AuthProvider.GOOGLE }],
-      },
-    });
-
-    if (user) {
-      // Actualizar usuario existente
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          name,
-          lastLoginAt: new Date(),
-          providerId,
-          provider: AuthProvider.GOOGLE,
-        },
-      });
-    } else {
-      // Crear nuevo usuario
-      user = await this.prisma.user.create({
-        data: {
-          email,
-          name,
-          provider: AuthProvider.GOOGLE,
-          providerId,
-          role: Role.OWNER,
-          isEmailVerified: false,
-        },
-      });
-
-      // Enviar email de verificación para nuevos usuarios
-      await this.sendVerificationEmail(user);
-    }
-
-    return user;
-  } */
-
-  /**
-   * Procesa el login OAuth y retorna la respuesta completa
-   */
-  /* async processOAuthLogin(user: any): Promise<OAuthLoginResponseDto> {
-    const accessToken = await this.generateJwtToken(user);
-
-    return {
-      access_token: accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-        provider: user.provider,
-      },
-      message: user.isEmailVerified
-        ? 'Login exitoso'
-        : 'Login exitoso. Por favor verifica tu email.',
-    };
-  } */
-
-  /* private async createTokens(payload: JwtPayload) {
-    return {
-      accessToken: await this.jwtService.signAsync(
-        payload,
-        this.jwtConfig.access,
-      ),
-      refreshToken: await this.jwtService.signAsync(
-        payload,
-        this.jwtConfig.refresh,
-      ),
-    };
-  } */
 }

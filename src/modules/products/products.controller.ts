@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   ParseBoolPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductsDto } from './dto/create-product.dto';
@@ -26,17 +27,20 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { BusinessAccess } from 'src/common/decorators/business-access.decorator';
 import { BusinessAccessGuard } from '../auth/guards/business-access.guard';
+import { DefaultValuePipe } from '@nestjs/common';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('products')
-@UseGuards(JwtAuthGuard, EmailConfirmedGuard)
+@UseGuards(JwtAuthGuard, EmailConfirmedGuard, BusinessAccessGuard, RolesGuard)
+@BusinessAccess()
+@Roles(Role.ADMIN, Role.OWNER)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   /**
    * Crear un nuevo producto
    */
-  @Post()
-  @UseGuards(RolesGuard)
+  @Post('/business/:businessId/new')
   @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   async create(
     @Body() createProductDto: CreateProductsDto,
@@ -48,12 +52,11 @@ export class ProductsController {
    * Obtener productos por negocio con filtros y paginación
    */
   @Get('business/:businessId')
-  @UseGuards(BusinessAccessGuard)
-  @BusinessAccess()
+  @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   async findAllByBusiness(
     @Param('businessId', ParseUUIDPipe) businessId: string,
-    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('search') search?: string,
     @Query('categoryId', new ParseUUIDPipe({ optional: true }))
     categoryId?: string,
@@ -73,7 +76,8 @@ export class ProductsController {
   /**
    * Obtener un producto específico
    */
-  @Get(':id/business/:businessId')
+  @Get('/business/:businessId/:id')
+  @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   @UseGuards(BusinessAccessGuard)
   @BusinessAccess()
   async findOne(
@@ -86,9 +90,7 @@ export class ProductsController {
   /**
    * Actualizar un producto
    */
-  @Patch(':id/business/:businessId')
-  @UseGuards(BusinessAccessGuard, RolesGuard)
-  @BusinessAccess()
+  @Patch('/business/:businessId/update/:id')
   @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -101,9 +103,7 @@ export class ProductsController {
   /**
    * Eliminar un producto (soft delete)
    */
-  @Delete(':id/business/:businessId')
-  @UseGuards(BusinessAccessGuard, RolesGuard)
-  @BusinessAccess()
+  @Delete('/business/:businessId/delete/:id')
   @Roles(Role.OWNER, Role.ADMIN)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
@@ -115,9 +115,7 @@ export class ProductsController {
   /**
    * Eliminar permanentemente un producto
    */
-  @Delete(':id/business/:businessId/permanent')
-  @UseGuards(BusinessAccessGuard, RolesGuard)
-  @BusinessAccess()
+  @Delete('/business/:businessId/permanent/:id')
   @Roles(Role.OWNER)
   async hardDelete(
     @Param('id', ParseUUIDPipe) id: string,
@@ -131,10 +129,8 @@ export class ProductsController {
   /**
    * Obtener productos destacados
    */
+  @Public()
   @Get('business/:businessId/featured')
-  @UseGuards(BusinessAccessGuard, RolesGuard)
-  @BusinessAccess()
-  @Roles(Role.OWNER, Role.ADMIN)
   async getFeaturedProducts(
     @Param('businessId', ParseUUIDPipe) businessId: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 5,
@@ -153,9 +149,6 @@ export class ProductsController {
    * Obtener productos con stock bajo
    */
   @Get('business/:businessId/low-stock')
-  @UseGuards(BusinessAccessGuard, RolesGuard)
-  @BusinessAccess()
-  @Roles(Role.OWNER, Role.ADMIN)
   async getLowStockProducts(
     @Param('businessId', ParseUUIDPipe) businessId: string,
     @Query('threshold', new ParseIntPipe({ optional: true }))

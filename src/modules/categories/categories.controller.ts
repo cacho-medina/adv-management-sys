@@ -29,29 +29,20 @@ import { BusinessAccessGuard } from '../auth/guards/business-access.guard';
 import { BusinessAccess } from 'src/common/decorators/business-access.decorator';
 
 @Controller('categories')
-@UseGuards(JwtAuthGuard, EmailConfirmedGuard)
+@UseGuards(JwtAuthGuard, EmailConfirmedGuard, BusinessAccessGuard, RolesGuard)
+@BusinessAccess()
+@Roles(Role.ADMIN, Role.OWNER)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   /**
    * Crear una nueva categoría
    */
-  @Post()
-  @UseGuards(RolesGuard)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Post('/business/:businessId/new')
   async create(
     @Body() createCategoryDto: CreateCategoriesDto,
-    // @Req() req: any
   ): Promise<{ message: string; category: CategoryResponseDto }> {
-    // const { user } = req;
-    // return this.categoriesService.create(createCategoryDto, user.role, user.sub);
-
-    // Temporal para testing - reemplazar con autenticación real
-    return this.categoriesService.create(
-      createCategoryDto,
-      Role.ADMIN,
-      'temp-user-id',
-    );
+    return this.categoriesService.create(createCategoryDto);
   }
 
   /**
@@ -61,149 +52,55 @@ export class CategoriesController {
   async findAll(
     @Query('businessId', new ParseUUIDPipe({ optional: true }))
     businessId?: string,
-    @Query('includeGlobal', new ParseBoolPipe({ optional: true }))
-    includeGlobal: boolean = true,
     @Query('includeHierarchy', new ParseBoolPipe({ optional: true }))
     includeHierarchy: boolean = false,
   ): Promise<CategoryListResponseDto> {
-    return this.categoriesService.findAll(
-      businessId,
-      includeGlobal,
-      includeHierarchy,
-    );
-  }
-
-  /**
-   * Obtener solo categorías globales
-   */
-  @Public()
-  @Get('global')
-  async findGlobalCategories(): Promise<CategoryResponseDto[]> {
-    return this.categoriesService.findGlobalCategories();
+    return this.categoriesService.findAll(businessId, includeHierarchy);
   }
 
   /**
    * Obtener categorías de un negocio específico
    */
   @Get('business/:businessId')
-  @UseGuards(BusinessAccessGuard)
-  @BusinessAccess()
+  @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   async findByBusiness(
     @Param('businessId', ParseUUIDPipe) businessId: string,
-    @Query('includeGlobal', new ParseBoolPipe({ optional: true }))
-    includeGlobal: boolean = true,
-    // @Req() req: any
+    @Query('includeHierarchy', new ParseBoolPipe({ optional: true }))
+    includeHierarchy: boolean = false,
   ): Promise<CategoryResponseDto[]> {
-    // const { user } = req;
-    // return this.categoriesService.findByBusiness(businessId, user.sub, includeGlobal);
-
-    // Temporal para testing
-    return this.categoriesService.findByBusiness(
-      businessId,
-      'temp-user-id',
-      includeGlobal,
-    );
+    return this.categoriesService.findByBusiness(businessId, includeHierarchy);
   }
 
   /**
    * Obtener una categoría específica
    */
   @Get(':id')
+  @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    // @Req() req: any
   ): Promise<CategoryResponseDto> {
-    // const { user } = req;
-    // return this.categoriesService.findOne(id, user.sub, user.role);
-
-    // Temporal para testing
-    return this.categoriesService.findOne(id, 'temp-user-id', Role.ADMIN);
+    return this.categoriesService.findOne(id);
   }
 
   /**
    * Actualizar una categoría
    */
-  @Patch(':id')
-  @UseGuards(RolesGuard)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Patch('/business/:businessId/update/:id')
   async update(
+    @Param('businessId', ParseUUIDPipe) businessId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
-    // @Req() req: any
   ): Promise<{ message: string; category: CategoryResponseDto }> {
-    // const { user } = req;
-    // return this.categoriesService.update(id, updateCategoryDto, user.sub, user.role);
-
-    // Temporal para testing
-    return this.categoriesService.update(
-      id,
-      updateCategoryDto,
-      'temp-user-id',
-      Role.ADMIN,
-    );
+    return this.categoriesService.update(businessId, id, updateCategoryDto);
   }
 
   /**
    * Eliminar una categoría
    */
-  @Delete(':id')
-  @UseGuards(RolesGuard)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Delete('/business/:businessId/delete/:id')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    // @Req() req: any
   ): Promise<{ message: string }> {
-    // const { user } = req;
-    // return this.categoriesService.remove(id, user.sub, user.role);
-
-    // Temporal para testing
-    return this.categoriesService.remove(id, 'temp-user-id', Role.ADMIN);
-  }
-
-  // Endpoints adicionales de utilidad
-
-  /**
-   * Obtener jerarquía completa de categorías
-   */
-  @Public()
-  @Get('hierarchy/tree')
-  async getCategoryTree(
-    @Query('businessId', new ParseUUIDPipe({ optional: true }))
-    businessId?: string,
-  ): Promise<CategoryResponseDto[]> {
-    const result = await this.categoriesService.findAll(businessId, true, true);
-    // Filtrar solo categorías padre (sin parentId)
-    return result.categories.filter((cat) => !cat.parentId);
-  }
-
-  /**
-   * Obtener estadísticas de categorías
-   */
-  @Get('stats/summary')
-  @UseGuards(RolesGuard)
-  @Roles(Role.OWNER, Role.ADMIN)
-  async getCategoryStats(
-    @Query('businessId', new ParseUUIDPipe({ optional: true }))
-    businessId?: string,
-  ): Promise<{
-    total: number;
-    global: number;
-    business: number;
-    withProducts: number;
-    withChildren: number;
-  }> {
-    const result = await this.categoriesService.findAll(businessId, true, true);
-
-    return {
-      total: result.total,
-      global: result.globalCategories,
-      business: result.businessCategories,
-      withProducts: result.categories.filter(
-        (cat) => cat.children && cat.children.length > 0,
-      ).length,
-      withChildren: result.categories.filter(
-        (cat) => cat.children && cat.children.length > 0,
-      ).length,
-    };
+    return this.categoriesService.remove(id);
   }
 }

@@ -15,6 +15,5 @@ export class CategoryResponseDto {
 export class CategoryListResponseDto {
   categories: CategoryResponseDto[];
   total: number;
-  globalCategories: number;
   businessCategories: number;
 }

@@ -9,12 +9,21 @@ import {
 import { Role, AuthProvider } from '@prisma/client';
 
 export class CompleteProfileDto {
-  userId: string;
-  username: string;
-  avatar: string;
-  phone: string;
-  secondaryEmail: string;
-  description: string;
+  @IsOptional()
+  @IsString()
+  username?: string;
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+  @IsOptional()
+  @IsString()
+  phone?: string;
+  @IsOptional()
+  @IsString()
+  secondaryEmail?: string;
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
 
 export class CreateUserDto {

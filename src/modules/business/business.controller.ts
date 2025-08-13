@@ -40,88 +40,76 @@ export class BusinessController {
    * Crear nuevo negocio
    */
   @Post('create-business')
-  @UseGuards(RolesGuard)
-  @Roles(Role.OWNER)
   async createBusiness(
     @Body() createBusinessDto: CreateBusinessDto,
+    @Req() req: any,
   ): Promise<{ message: string; business: BusinessResponseDto }> {
-    return this.businessService.createBusiness(createBusinessDto);
+    const { user } = req;
+    return this.businessService.createBusiness(user.id, createBusinessDto);
   }
 
   /**
    * Listar negocios del usuario
    */
-  @Get()
+  @Get('/all')
   async findAllByUser(
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
-    // @Req() req: any,
+    @Req() req: any,
   ): Promise<BusinessListResponseDto> {
-    // const { user } = req;
-    // return this.businessService.findAllByUser(user.sub, page, limit);
-
-    // Temporal para testing
-    return this.businessService.findAllByUser('temp-user-id', page, limit);
+    const { user } = req;
+    return this.businessService.findAllByUser(user.id, page, limit);
   }
 
   /**
    * Obtener negocio específico
    */
-  @Get(':id')
+  @Get('/find/:businessId')
   @UseGuards(BusinessAccessGuard)
   @BusinessAccess()
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    // @Req() req: any,
+    @Param('businessId') id: string,
+    @Req() req: any,
   ): Promise<BusinessResponseDto> {
-    // const { user } = req;
-    // return this.businessService.findOne(id, user.sub);
-
-    // Temporal para testing
-    return this.businessService.findOne(id, 'temp-user-id');
+    const { user } = req;
+    return this.businessService.findOne(id, user.id);
   }
 
   /**
    * Actualizar negocio
    */
-  @Patch(':id')
+  @Patch('/update/:id')
   @UseGuards(BusinessAccessGuard, RolesGuard)
   @BusinessAccess()
   @Roles(Role.OWNER, Role.ADMIN)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateBusinessDto: UpdateBusinessDto,
-    // @Req() req: any,
+    @Req() req: any,
   ): Promise<{ message: string; business: BusinessResponseDto }> {
-    // const { user } = req;
-    // return this.businessService.update(id, user.sub, updateBusinessDto);
-
-    // Temporal para testing
-    return this.businessService.update(id, 'temp-user-id', updateBusinessDto);
+    const { user } = req;
+    return this.businessService.update(id, user.id, updateBusinessDto);
   }
 
   /**
    * Eliminar negocio
    */
-  @Delete(':id')
+  @Delete('/delete/:id')
   @UseGuards(BusinessAccessGuard, RolesGuard)
   @BusinessAccess()
   @Roles(Role.OWNER)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    // @Req() req: any,
+    @Req() req: any,
   ): Promise<{ message: string }> {
-    // const { user } = req;
-    // return this.businessService.remove(id, user.sub);
-
-    // Temporal para testing
-    return this.businessService.remove(id, 'temp-user-id');
+    const { user } = req;
+    return this.businessService.remove(id, user.id);
   }
 
   /**
    * Obtener estadísticas del negocio
    */
-  @Get(':id/stats')
+  @Get('/stats/:id')
   @UseGuards(BusinessAccessGuard, RolesGuard)
   @BusinessAccess()
   @Roles(Role.OWNER, Role.ADMIN)
@@ -139,7 +127,7 @@ export class BusinessController {
   /**
    * Obtener empleados del negocio
    */
-  @Get(':id/employees')
+  @Get('/employees/:id')
   @UseGuards(BusinessAccessGuard, RolesGuard)
   @BusinessAccess()
   @Roles(Role.OWNER, Role.ADMIN)
@@ -157,7 +145,7 @@ export class BusinessController {
   /**
    * Invitar empleado al negocio
    */
-  @Post(':id/invite')
+  @Post('/invite/:id')
   @UseGuards(BusinessAccessGuard, RolesGuard)
   @BusinessAccess()
   @Roles(Role.OWNER)
@@ -176,7 +164,7 @@ export class BusinessController {
   /**
    * Actualizar configuraciones del negocio
    */
-  @Patch(':id/settings')
+  @Patch('/settings/:id')
   @UseGuards(BusinessAccessGuard, RolesGuard)
   @BusinessAccess()
   @Roles(Role.OWNER)

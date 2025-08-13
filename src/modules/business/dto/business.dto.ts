@@ -7,14 +7,11 @@ import {
   IsNotEmpty,
   MaxLength,
   IsEnum,
+  ValidateIf,
 } from 'class-validator';
 import { Role } from '@prisma/client';
 
 export class CreateBusinessDto {
-  @IsUUID()
-  @IsNotEmpty()
-  userId: string;
-
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -35,12 +32,14 @@ export class CreateBusinessDto {
   @MaxLength(20)
   phone?: string;
 
-  @IsEmail()
   @IsOptional()
+  @ValidateIf((o) => o.email !== '') // Solo validar si no es string vacío
+  @IsEmail()
   email?: string;
 
-  @IsUrl()
   @IsOptional()
+  @ValidateIf((o) => o.website !== '') // Solo validar si no es string vacío
+  @IsUrl()
   website?: string;
 
   @IsString()

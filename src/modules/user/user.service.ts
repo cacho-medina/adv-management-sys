@@ -16,9 +16,8 @@ export class UserService {
     }
     return user;
   }
-  async completeProfile(profileDto: CompleteProfileDto) {
-    const { userId, username, avatar, phone, secondaryEmail, description } =
-      profileDto;
+  async completeProfile(userId: string, profileDto: CompleteProfileDto) {
+    const { username, avatar, phone, secondaryEmail, description } = profileDto;
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });

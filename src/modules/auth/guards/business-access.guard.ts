@@ -52,7 +52,6 @@ export class BusinessAccessGuard implements CanActivate {
     if (!userBusiness) {
       throw new ForbiddenException('No tienes acceso a este negocio');
     }
-
     // Agregar información del negocio al request
     request.userBusiness = userBusiness;
     return true;

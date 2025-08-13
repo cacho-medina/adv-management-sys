@@ -23,9 +23,6 @@ export class ProductResponseDto {
   stock: number;
   type: ProductType;
   sku?: string;
-  barcode?: string;
-  weight?: number;
-  dimensions?: string;
   isActive: boolean;
   isFeatured: boolean;
   businessId: string;

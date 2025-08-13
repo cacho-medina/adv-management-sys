@@ -27,7 +27,7 @@ export class MailService {
     const html = templates[template](context);
 
     try {
-      transporter.sendMail({
+      await transporter.sendMail({
         from: `"Soporte" <${process.env.SMTP_USER}>`,
         to,
         subject,

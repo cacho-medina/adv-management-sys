@@ -23,12 +23,7 @@
 | POST   | `/auth/reset-password`      | Restablecer contraseña con token          |
 | POST   | `/auth/login`               | Iniciar sesión con credenciales           |
 
-**Endpoints comentados (preparados para OAuth):**
-
-- GET `/auth/google` - Autenticación con Google
-- GET `/auth/google/redirect` - Callback de Google OAuth
-- GET `/auth/profile` - Obtener perfil del usuario autenticado
-- GET `/auth/protected` - Ruta protegida con verificación de email
+**Todos los endpoints son públicos (@Public())**
 
 ### 👤 Módulo de Usuarios (UserController)
 
@@ -36,223 +31,226 @@
 
 | Método | Endpoint                | Descripción                 |
 | ------ | ----------------------- | --------------------------- |
-| POST   | `/users/create-profile` | Crear perfil de propietario |
+| POST   | `/users/complete-profile` | Completar perfil de usuario |
 
-**Endpoints comentados:**
-
-- POST `/users/create-employee` - Crear empleado
+**Requiere autenticación JWT**
 
 ### 🏢 Módulo de Negocios (BusinessController)
 
 **Ruta base:** `/business`
 
-| Método | Endpoint                    | Descripción         |
-| ------ | --------------------------- | ------------------- |
-| POST   | `/business/create-business` | Crear nuevo negocio |
+| Método | Endpoint                    | Descripción                         | Roles Requeridos    | Guards                                    |
+| ------ | --------------------------- | ----------------------------------- | ------------------- | ----------------------------------------- |
+| POST   | `/business/create-business` | Crear nuevo negocio                 | OWNER               | JWT, EmailConfirmed, Roles                |
+| GET    | `/business/all`             | Listar negocios del usuario         | Cualquier autenticado | JWT, EmailConfirmed                       |
+| GET    | `/business/find/:businessId` | Obtener negocio específico          | Cualquier autenticado | JWT, EmailConfirmed, BusinessAccess       |
+| PATCH  | `/business/update/:id`      | Actualizar negocio                  | OWNER, ADMIN        | JWT, EmailConfirmed, BusinessAccess, Roles |
+| DELETE | `/business/delete/:id`      | Eliminar negocio                    | OWNER               | JWT, EmailConfirmed, BusinessAccess, Roles |
+| GET    | `/business/stats/:id`       | Obtener estadísticas del negocio    | OWNER, ADMIN        | JWT, EmailConfirmed, BusinessAccess, Roles |
+| GET    | `/business/employees/:id`   | Obtener empleados del negocio       | OWNER, ADMIN        | JWT, EmailConfirmed, BusinessAccess, Roles |
+| POST   | `/business/invite/:id`      | Invitar empleado al negocio         | OWNER               | JWT, EmailConfirmed, BusinessAccess, Roles |
+| PATCH  | `/business/settings/:id`    | Actualizar configuraciones del negocio | OWNER               | JWT, EmailConfirmed, BusinessAccess, Roles |
+
+**Parámetros de consulta para `/business/all`:**
+- `page` (number): Número de página (default: 1)
+- `limit` (number): Elementos por página (default: 10)
 
 ### 🎯 Módulo de Onboarding (OnboardingController)
 
 **Ruta base:** `/onboarding`
 
-| Método | Endpoint                       | Descripción                         |
-| ------ | ------------------------------ | ----------------------------------- |
-| POST   | `/onboarding/complete-profile` | Completar perfil durante onboarding |
+| Método | Endpoint                       | Descripción                         | Roles Requeridos |
+| ------ | ------------------------------ | ----------------------------------- | ---------------- |
+| POST   | `/onboarding/create-business`  | Crear negocio durante onboarding    | OWNER            |
+| POST   | `/onboarding/create-products`  | Crear productos durante onboarding  | OWNER            |
+| POST   | `/onboarding/create-categories`| Crear categorías durante onboarding | OWNER            |
+
+**Todos los endpoints requieren: JWT, EmailConfirmed, Roles**
 
 ### 📦 Módulo de Productos (ProductsController)
 
 **Ruta base:** `/products`
 
-| Método | Endpoint                                       | Descripción                                              |
-| ------ | ---------------------------------------------- | -------------------------------------------------------- |
-| POST   | `/products`                                    | Crear nuevo producto                                     |
-| GET    | `/products/business/:businessId`               | Obtener productos por negocio (con filtros y paginación) |
-| GET    | `/products/:id/business/:businessId`           | Obtener producto específico                              |
-| PATCH  | `/products/:id/business/:businessId`           | Actualizar producto                                      |
-| DELETE | `/products/:id/business/:businessId`           | Eliminar producto (soft delete)                          |
-| DELETE | `/products/:id/business/:businessId/permanent` | Eliminar producto permanentemente                        |
-| GET    | `/products/business/:businessId/featured`      | Obtener productos destacados                             |
-| GET    | `/products/business/:businessId/low-stock`     | Obtener productos con stock bajo _(no implementado)_     |
+| Método | Endpoint                                       | Descripción                                              | Roles Requeridos        | Guards                                    |
+| ------ | ---------------------------------------------- | -------------------------------------------------------- | ----------------------- | ----------------------------------------- |
+| POST   | `/products`                                    | Crear nuevo producto                                     | OWNER, ADMIN, EMPLOYEE  | JWT, EmailConfirmed, Roles                |
+| GET    | `/products/business/:businessId`               | Obtener productos por negocio (con filtros y paginación) | Cualquier autenticado   | JWT, EmailConfirmed, BusinessAccess       |
+| GET    | `/products/business/:businessId/:id`           | Obtener producto específico                              | Cualquier autenticado   | JWT, EmailConfirmed, BusinessAccess       |
+| PATCH  | `/products/business/:businessId/update/:id`    | Actualizar producto                                      | OWNER, ADMIN, EMPLOYEE  | JWT, EmailConfirmed, BusinessAccess, Roles |
+| DELETE | `/products/business/:businessId/delete/:id`    | Eliminar producto (soft delete)                          | OWNER, ADMIN            | JWT, EmailConfirmed, BusinessAccess, Roles |
+| DELETE | `/products/business/:businessId/permanent/:id` | Eliminar producto permanentemente                        | OWNER                   | JWT, EmailConfirmed, BusinessAccess, Roles |
+| GET    | `/products/business/:businessId/featured`      | Obtener productos destacados                             | OWNER, ADMIN            | JWT, EmailConfirmed, BusinessAccess, Roles |
+| GET    | `/products/business/:businessId/low-stock`     | Obtener productos con stock bajo *(no implementado)*     | OWNER, ADMIN            | JWT, EmailConfirmed, BusinessAccess, Roles |
 
 **Parámetros de consulta para `/products/business/:businessId`:**
-
 - `page` (number): Número de página (default: 1)
 - `limit` (number): Elementos por página (default: 10)
 - `search` (string): Búsqueda por nombre o descripción
 - `categoryId` (UUID): Filtrar por categoría
 - `isActive` (boolean): Filtrar por estado activo
 
+**Parámetros de consulta para `/products/business/:businessId/featured`:**
+- `limit` (number): Número de productos (default: 5)
+
+**Parámetros de consulta para `/products/business/:businessId/low-stock`:**
+- `threshold` (number): Umbral de stock bajo (default: 10)
+
 ### 🏷️ Módulo de Categorías (CategoriesController)
 
 **Ruta base:** `/categories`
 
-| Método | Endpoint                           | Descripción                                 |
-| ------ | ---------------------------------- | ------------------------------------------- |
-| POST   | `/categories`                      | Crear nueva categoría                       |
-| GET    | `/categories`                      | Obtener todas las categorías con filtros    |
-| GET    | `/categories/global`               | Obtener solo categorías globales            |
-| GET    | `/categories/business/:businessId` | Obtener categorías de un negocio específico |
-| GET    | `/categories/:id`                  | Obtener categoría específica                |
-| PATCH  | `/categories/:id`                  | Actualizar categoría                        |
-| DELETE | `/categories/:id`                  | Eliminar categoría                          |
-| GET    | `/categories/hierarchy/tree`       | Obtener jerarquía completa de categorías    |
-| GET    | `/categories/stats/summary`        | Obtener estadísticas de categorías          |
+| Método | Endpoint                           | Descripción                                 | Roles Requeridos    | Guards                                    |
+| ------ | ---------------------------------- | ------------------------------------------- | ------------------- | ----------------------------------------- |
+| POST   | `/categories`                      | Crear nueva categoría                       | OWNER, ADMIN        | JWT, EmailConfirmed, Roles                |
+| GET    | `/categories`                      | Obtener todas las categorías con filtros    | Cualquier autenticado | JWT, EmailConfirmed                       |
+| GET    | `/categories/business/:businessId` | Obtener categorías de un negocio específico | Cualquier autenticado | JWT, EmailConfirmed, BusinessAccess       |
+| GET    | `/categories/:id`                  | Obtener categoría específica                | Cualquier autenticado | JWT, EmailConfirmed                       |
+| PATCH  | `/categories/:id`                  | Actualizar categoría                        | OWNER, ADMIN        | JWT, EmailConfirmed, Roles                |
+| DELETE | `/categories/:id`                  | Eliminar categoría                          | OWNER, ADMIN        | JWT, EmailConfirmed, Roles                |
+| GET    | `/categories/hierarchy/tree`       | Obtener jerarquía completa de categorías    | Público             | Ninguno (@Public)                         |
+| GET    | `/categories/stats/summary`        | Obtener estadísticas de categorías          | OWNER, ADMIN        | JWT, EmailConfirmed, Roles                |
 
 **Parámetros de consulta para `/categories`:**
-
 - `businessId` (UUID): Filtrar por negocio específico
-- `includeGlobal` (boolean): Incluir categorías globales (default: true)
 - `includeHierarchy` (boolean): Incluir jerarquía completa (default: false)
+
+**Parámetros de consulta para `/categories/business/:businessId`:**
+- `includeHierarchy` (boolean): Incluir jerarquía completa (default: false)
+
+**Parámetros de consulta para `/categories/hierarchy/tree`:**
+- `businessId` (UUID): Filtrar por negocio específico
+
+**Parámetros de consulta para `/categories/stats/summary`:**
+- `businessId` (UUID): Filtrar por negocio específico
+
+### 📧 Módulo de Mail (MailController)
+
+**Ruta base:** `/mail`
+
+| Método | Endpoint                | Descripción                    | Guards    |
+| ------ | ----------------------- | ------------------------------ | --------- |
+| GET    | `/mail/verify-connection` | Verificar conexión del servicio de correo | Público (@Public) |
+| POST   | `/mail/send-test`       | Enviar correo de prueba        | Público (@Public) |
+
+**Parámetros para `/mail/send-test`:**
+- `to` (string): Dirección de correo destino
 
 ## 📊 Resumen de Endpoints
 
-- **Total de endpoints activos:** 23
-- **Endpoints comentados/preparados:** 4
-- **Módulos implementados:** 6
-- **Endpoints con autenticación:** 0 (temporalmente deshabilitada para testing)
+- **Total de endpoints activos:** 32
+- **Endpoints públicos:** 8
+- **Endpoints con autenticación:** 24
+- **Módulos implementados:** 7
 
 ## 🔧 Estado de Implementación
 
 ### ✅ Completamente Implementados
 
-- **Autenticación:** Sistema completo de registro, login y verificación
-- **Productos:** CRUD completo con filtros avanzados
-- **Categorías:** CRUD completo con jerarquías y categorías globales
+- **Autenticación:** Sistema completo de registro, login, verificación y recuperación de contraseña
+- **Productos:** CRUD completo con filtros avanzados, soft delete y endpoints de utilidad
+- **Categorías:** CRUD completo con jerarquías (solo categorías de negocio)
+- **Negocios:** CRUD completo con estadísticas, empleados e invitaciones
+- **Mail:** Sistema de verificación y envío de correos de prueba
 
 ### ⚠️ Parcialmente Implementados
 
-- **Usuarios:** Solo creación de perfiles de propietario
-- **Negocios:** Solo creación de negocios
-- **Onboarding:** Solo completar perfil
+- **Usuarios:** Solo completar perfil
+- **Onboarding:** Endpoints básicos para creación durante onboarding
+- **Productos:** Endpoint de stock bajo no implementado
 
 ### ❌ Pendientes de Implementación
 
-- Sistema de empleados
-- Gestión de roles y permisos
+- Sistema completo de empleados
 - OAuth con Google
-- Reportes y analytics
-- Sistema de inventario avanzado
+- Reportes y analytics avanzados
+- Sistema de archivos/uploads
+- Notificaciones
 
-## 🚀 Recomendaciones de Nuevos Endpoints
+## 🔐 Sistema de Seguridad
 
-### 🔐 Autenticación y Autorización
+### Guards Implementados
 
-GET /auth/profile - Obtener perfil del usuario autenticado
-POST /auth/refresh-token - Renovar token de acceso
-POST /auth/logout - Cerrar sesión
-GET /auth/google - Iniciar autenticación con Google
-GET /auth/google/redirect - Callback de Google OAuth
-POST /auth/change-password - Cambiar contraseña
-GET /auth/verify-token - Verificar validez del token
+1. **Guards de Autenticación:**
+   - `JwtAuthGuard`: Todos los endpoints protegidos
+   - `EmailConfirmedGuard`: Endpoints que requieren email verificado
 
-### 👥 Gestión de Usuarios y Empleados
+2. **Guards de Autorización:**
+   - `RolesGuard`: Endpoints con control de roles específicos
+   - `BusinessAccessGuard`: Endpoints que requieren acceso a un negocio específico
 
-GET /users - Listar usuarios (admin)
-GET /users/:id - Obtener usuario específico
-PATCH /users/:id - Actualizar usuario
-DELETE /users/:id - Eliminar usuario
-POST /users/create-employee - Crear empleado
-GET /users/business/:businessId - Obtener usuarios de un negocio
-PATCH /users/:id/role - Cambiar rol de usuario
-PATCH /users/:id/status - Activar/desactivar usuario
+3. **Decoradores:**
+   - `@Public()`: Endpoints públicos
+   - `@Roles()`: Especificar roles requeridos (OWNER, ADMIN, EMPLOYEE)
+   - `@BusinessAccess()`: Marcar endpoints que requieren acceso a negocio
 
-### 🏢 Gestión de Negocios
+### Roles del Sistema
 
-GET /business - Listar negocios del usuario
-GET /business/:id - Obtener negocio específico
-PATCH /business/:id - Actualizar negocio
-DELETE /business/:id - Eliminar negocio
-GET /business/:id/stats - Estadísticas del negocio
-GET /business/:id/employees - Empleados del negocio
-POST /business/:id/invite - Invitar empleado
-PATCH /business/:id/settings - Configuraciones del negocio
+- **OWNER**: Propietario del negocio (todos los permisos)
+- **ADMIN**: Administrador (permisos de gestión)
+- **EMPLOYEE**: Empleado (permisos limitados)
 
-### 📊 Reportes y Analytics
+## 🚀 Cambios Importantes desde la Última Versión
 
-GET /reports/sales - Reporte de ventas
-GET /reports/inventory - Reporte de inventario
-GET /reports/products/performance - Rendimiento de productos
-GET /reports/categories/usage - Uso de categorías
-GET /reports/business/:id/summary - Resumen ejecutivo
-GET /analytics/dashboard - Datos para dashboard
+### ✅ Nuevos Endpoints Implementados
 
-### 📦 Mejoras para Productos
+1. **Business Module:**
+   - `GET /business/all` - Listar negocios del usuario
+   - `GET /business/find/:businessId` - Obtener negocio específico
+   - `PATCH /business/update/:id` - Actualizar negocio
+   - `DELETE /business/delete/:id` - Eliminar negocio
+   - `GET /business/stats/:id` - Estadísticas del negocio
+   - `GET /business/employees/:id` - Empleados del negocio
+   - `POST /business/invite/:id` - Invitar empleado
+   - `PATCH /business/settings/:id` - Configuraciones del negocio
 
-POST /products/bulk - Crear productos en lote
-PATCH /products/bulk - Actualizar productos en lote
-GET /products/search - Búsqueda avanzada de productos
-POST /products/:id/duplicate - Duplicar producto
-GET /products/:id/history - Historial de cambios
-PATCH /products/:id/stock - Actualizar stock
-GET /products/export - Exportar productos
-POST /products/import - Importar productos
+2. **Products Module:**
+   - Rutas actualizadas con patrón `/business/:businessId`
+   - `PATCH /products/business/:businessId/update/:id` - Actualizar producto
+   - `DELETE /products/business/:businessId/delete/:id` - Soft delete
+   - `DELETE /products/business/:businessId/permanent/:id` - Hard delete
 
-### 🏷️ Mejoras para Categorías
+3. **Categories Module:**
+   - Eliminación de categorías globales
+   - Todas las categorías ahora pertenecen a un negocio
 
-POST /categories/bulk - Crear categorías en lote
-POST /categories/:id/move - Mover categoría en jerarquía
-GET /categories/:id/products - Productos de una categoría
-POST /categories/import - Importar categorías
-GET /categories/export - Exportar categorías
+4. **Mail Module:**
+   - `GET /mail/verify-connection` - Verificar conexión
+   - `POST /mail/send-test` - Enviar correo de prueba
 
-### 🔔 Notificaciones
+5. **Onboarding Module:**
+   - `POST /onboarding/create-business` - Crear negocio
+   - `POST /onboarding/create-products` - Crear productos
+   - `POST /onboarding/create-categories` - Crear categorías
 
-GET /notifications - Obtener notificaciones
-PATCH /notifications/:id/read - Marcar como leída
-POST /notifications/mark-all-read - Marcar todas como leídas
-DELETE /notifications/:id - Eliminar notificación
+### 🔄 Endpoints Modificados
 
-### ⚙️ Configuración del Sistema
+- **Users:** `/users/create-profile` cambió a `/users/complete-profile`
+- **Business:** Rutas más específicas y descriptivas
+- **Products:** Todas las rutas ahora incluyen `businessId` para mejor seguridad
+- **Categories:** Eliminación del concepto de categorías globales
 
-GET /settings/business/:id - Configuraciones del negocio
-PATCH /settings/business/:id - Actualizar configuraciones
-GET /settings/user - Configuraciones del usuario
-PATCH /settings/user - Actualizar configuraciones de usuario
+### 🛡️ Mejoras de Seguridad
 
-### 📁 Gestión de Archivos
-
-POST /files/upload - Subir archivo
-GET /files/:id - Obtener archivo
-DELETE /files/:id - Eliminar archivo
-GET /files/business/:id - Archivos del negocio
-
-## 🎯 Prioridades de Implementación
-
-### Alta Prioridad
-
-1. **Autenticación completa** - Habilitar guards y middleware de JWT
-2. **Gestión de empleados** - Sistema completo de usuarios y roles
-3. **CRUD completo de negocios** - Operaciones faltantes
-4. **Sistema de archivos** - Para imágenes de productos
-
-### Media Prioridad
-
-1. **Reportes básicos** - Dashboard y estadísticas
-2. **Notificaciones** - Sistema de alertas
-3. **Búsqueda avanzada** - Filtros y búsqueda global
-4. **Operaciones en lote** - Para productos y categorías
-
-### Baja Prioridad
-
-1. **OAuth con Google** - Autenticación social
-2. **Exportación/Importación** - Funcionalidades avanzadas
-3. **Analytics avanzados** - Métricas detalladas
-4. **Configuraciones avanzadas** - Personalización del sistema
+- Implementación completa del sistema de guards
+- Control de acceso basado en roles
+- Validación de acceso a negocios específicos
+- Autenticación JWT habilitada en todos los endpoints protegidos
 
 ## 📝 Notas de Desarrollo
 
-### Autenticación Temporal
+### Autenticación Activa
 
-Actualmente, los endpoints de categorías y productos tienen la autenticación comentada para facilitar el testing. En producción, se debe:
-
-- Habilitar `JwtAuthGuard` en todos los endpoints protegidos
-- Implementar `RolesGuard` para control de acceso basado en roles
-- Configurar decoradores `@Roles()` según los permisos requeridos
+Todos los endpoints protegidos ahora tienen la autenticación habilitada:
+- `JwtAuthGuard` para verificación de tokens
+- `EmailConfirmedGuard` para usuarios con email confirmado
+- `RolesGuard` para control de acceso basado en roles
+- `BusinessAccessGuard` para validar acceso a negocios específicos
 
 ### Validaciones
 
 - Todos los DTOs implementan validaciones con `class-validator`
 - Los UUIDs se validan automáticamente con `ParseUUIDPipe`
-- Los parámetros opcionales tienen valores por defecto
+- Validación de tipos con `ParseIntPipe` y `ParseBoolPipe`
 
 ### Paginación
 
@@ -268,5 +266,5 @@ Actualmente, los endpoints de categorías y productos tienen la autenticación c
 
 ---
 
-_Última actualización: $(date)_
-_Versión del sistema: 1.0.0_
+*Última actualización: $(date)*
+*Versión del sistema: 2.0.0*

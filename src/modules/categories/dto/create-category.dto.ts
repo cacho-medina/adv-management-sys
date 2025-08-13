@@ -27,8 +27,7 @@ export class CreateCategoriesDto {
   color?: string; // Color en formato hexadecimal
 
   @IsUUID()
-  @IsOptional()
-  businessId?: string; // null = categoría global, string = categoría específica
+  businessId: string;
 
   @IsUUID()
   @IsOptional()

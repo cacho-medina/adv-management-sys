@@ -57,21 +57,6 @@ export class CreateProductsDto {
   @MaxLength(50)
   sku?: string;
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(50)
-  barcode?: string;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  weight?: number;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(50)
-  dimensions?: string;
-
   @IsUrl()
   @IsOptional()
   image?: string;

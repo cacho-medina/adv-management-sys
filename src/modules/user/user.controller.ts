@@ -1,12 +1,17 @@
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import { UserService } from './user.service';
+import { CompleteProfileDto } from './dto/create-user.dto';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  /* @Post('create-employee')
-  async createEmployee(@Body() newEmployee: CreateEmployeeDto) {
-    return this.userService.createEmployee(newEmployee);
-  } */
+  @Post('complete-profile')
+  createProfile(
+    @Req() req: any,
+    @Body() completeProfileDto: CompleteProfileDto,
+  ) {
+    const { user } = req;
+    return this.userService.completeProfile(user.id, completeProfileDto);
+  }
 }

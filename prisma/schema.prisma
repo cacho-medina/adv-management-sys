@@ -29,7 +29,7 @@ model User {
   email      String   @unique
   password   String?  // Null si es login por Google
   name       String?
-  role       Role   @default(OWNER)
+  isActive    Boolean  @default(true)
   provider   AuthProvider @default(CREDENTIALS) // Enum en lugar de String
   providerId String?  // ID externo (Google ID, etc.)
   
@@ -61,7 +61,7 @@ model Profile {
   phone       String?
   secondaryEmail String?
   description String?
-  isActive    Boolean  @default(true)
+  
   
   // Relación 1:1 con User
   user        User     @relation(fields: [userId], references: [id])
@@ -87,7 +87,7 @@ model Business {
   products   Product[] // Relación 1:N - un negocio puede tener muchos productos
   sales      Sale[]   // Relación 1:N - un negocio puede tener muchas ventas
   expenses   Expense[] // Relación 1:N - un negocio puede tener muchos gastos
-  businessClients BusinessClient[] // Tabla intermedia para relación N:N con clientes
+  clients    Client[] // Relación 1:N - un negocio puede tener muchos clientes
   categories Category[] // Categorías específicas del negocio
   createdAt  DateTime @default(now())
 }
@@ -101,8 +101,8 @@ model UserBusiness {
   businessId String
   
   // Campos adicionales para la relación
-  role       Role     @default(EMPLOYEE) // Rol del usuario en este negocio específico
-  isEmployee   Boolean  @default(true)
+  role       Role     @default(EMPLOYEE)
+
   joinedAt   DateTime @default(now())
   
 
@@ -127,9 +127,6 @@ model Product {
   
   // Campos específicos por tipo
   sku         String?     @unique // Código de producto
-  barcode     String?     // Código de barras
-  weight      Float?      // Peso en kg
-  dimensions  String?     // Dimensiones (LxWxH)
   
   // Campos para productos físicos
   isActive    Boolean     @default(true)
@@ -154,9 +151,9 @@ model Category {
   icon        String?  // Icono para UI
   color       String?  // Color para UI
   
-  // Relación con Business (OPCIONAL)
-  business    Business? @relation(fields: [businessId], references: [id])
-  businessId  String?   // Null = categoría global, String = categoría específica
+  
+  business    Business @relation(fields: [businessId], references: [id])
+  businessId  String
   
   // Jerarquía de categorías
   parentId    String?
@@ -203,23 +200,13 @@ model Client {
   email      String?
   phone      String?
   address    String?
-  businessClients BusinessClient[] // Tabla intermedia para relación N:N con negocios
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
   sales      Sale[]   // Relación 1:N - un cliente puede tener muchas ventas
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
 
-// Tabla intermedia para relación N:N entre Business y Client
-model BusinessClient {
-  id         String   @id @default(uuid())
-  business   Business @relation(fields: [businessId], references: [id])
-  businessId String
-  client     Client   @relation(fields: [clientId], references: [id])
-  clientId   String
-  createdAt  DateTime @default(now())
-
-  @@unique([businessId, clientId]) // Evita duplicados
-}
 
 model Sale {
   id         String   @id @default(uuid())

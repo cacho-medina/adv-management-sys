@@ -20,7 +20,8 @@ export class ConfirmEmailResponseDto {
     id: string;
     email: string;
     isEmailVerified: boolean;
-    token: string;
+    access_token: string;
+    refresh_token: string;
   };
   nextUrl: string;
 }

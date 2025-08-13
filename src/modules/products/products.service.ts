@@ -26,9 +26,6 @@ export class ProductsService {
       stock,
       type,
       sku,
-      barcode,
-      weight,
-      dimensions,
       categoryIds,
       attributes,
       isFeatured,
@@ -57,22 +54,6 @@ export class ProductsService {
       }
     }
 
-    // Verificar código de barras único si se proporciona
-    if (barcode) {
-      const existingBarcode = await this.prisma.product.findFirst({
-        where: {
-          barcode,
-          businessId,
-        },
-      });
-
-      if (existingBarcode) {
-        throw new ConflictException(
-          'El código de barras ya existe en este negocio',
-        );
-      }
-    }
-
     try {
       const product = await this.prisma.product.create({
         data: {
@@ -82,9 +63,6 @@ export class ProductsService {
           stock,
           type,
           sku,
-          barcode,
-          weight,
-          dimensions,
           isActive: stock > 0,
           isFeatured: isFeatured || false,
           businessId,
@@ -233,9 +211,6 @@ export class ProductsService {
       stock,
       type,
       sku,
-      barcode,
-      weight,
-      dimensions,
       categoryIds,
       attributes,
       isFeatured,
@@ -265,23 +240,6 @@ export class ProductsService {
       }
     }
 
-    // Verificar código de barras único si se está actualizando
-    if (barcode && barcode !== existingProduct.barcode) {
-      const existingBarcode = await this.prisma.product.findFirst({
-        where: {
-          barcode,
-          businessId,
-          id: { not: id },
-        },
-      });
-
-      if (existingBarcode) {
-        throw new ConflictException(
-          'El código de barras ya existe en este negocio',
-        );
-      }
-    }
-
     try {
       // Usar transacción para actualizar producto y relaciones
       const updatedProduct = await this.prisma.$transaction(async (prisma) => {
@@ -295,9 +253,6 @@ export class ProductsService {
             ...(stock !== undefined && { stock, isActive: stock > 0 }),
             ...(type && { type }),
             ...(sku !== undefined && { sku }),
-            ...(barcode !== undefined && { barcode }),
-            ...(weight !== undefined && { weight }),
-            ...(dimensions !== undefined && { dimensions }),
             ...(isFeatured !== undefined && { isFeatured }),
           },
         });
@@ -448,9 +403,6 @@ export class ProductsService {
       stock: product.stock,
       type: product.type,
       sku: product.sku,
-      barcode: product.barcode,
-      weight: product.weight,
-      dimensions: product.dimensions,
       isActive: product.isActive,
       isFeatured: product.isFeatured,
       businessId: product.businessId,
