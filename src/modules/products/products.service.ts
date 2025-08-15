@@ -31,15 +31,6 @@ export class ProductsService {
       isFeatured,
     } = newProduct;
 
-    // Verificar que el negocio existe
-    const businessExists = await this.prisma.business.findUnique({
-      where: { id: businessId },
-    });
-
-    if (!businessExists) {
-      throw new NotFoundException('Negocio no encontrado');
-    }
-
     // Verificar SKU único si se proporciona
     if (sku) {
       const existingSku = await this.prisma.product.findFirst({

@@ -196,6 +196,7 @@ model ProductCategory {
 
 model Client {
   id         String   @id @default(uuid())
+  dni        String?  @unique
   name       String
   email      String?
   phone      String?

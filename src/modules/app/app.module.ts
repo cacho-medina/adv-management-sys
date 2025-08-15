@@ -10,6 +10,7 @@ import { ProductsModule } from '../products/products.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { BusinessModule } from '../business/business.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { SalesModule } from '../sales/sales.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { OnboardingModule } from '../onboarding/onboarding.module';
     CategoriesModule,
     BusinessModule,
     OnboardingModule,
+    SalesModule,
   ],
   controllers: [AppController],
 })

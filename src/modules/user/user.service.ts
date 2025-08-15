@@ -36,8 +36,51 @@ export class UserService {
       },
     });
     return {
-      message: 'Perfil creado correctamente',
+      message: 'Perfil actualizado correctamente',
       profile: profile.username,
+    };
+  }
+
+  async changePassword(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password,
+      },
+    });
+    return {
+      message: 'Contraseña cambiada correctamente',
+    };
+  }
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+      },
+    });
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+
+    return {
+      email: user.email,
+      name: user.name,
+      username: user.profile.username,
+      avatar: user.profile.avatar,
+      phone: user.profile.phone,
+      secondaryEmail: user.profile.secondaryEmail,
+      description: user.profile.description,
+      createdAt: user.registeredAt,
+      updatedAt: user.profile.updatedAt,
+      isEmailVerified: user.isEmailVerified,
+      lastLogin: user.lastLoginAt,
     };
   }
 }
