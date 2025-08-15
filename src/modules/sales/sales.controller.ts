@@ -61,13 +61,20 @@ export class SalesController {
     return this.salesService.findOne(businessId, saleId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSaleDto: UpdateSaleDto) {
-    return this.salesService.update(+id, updateSaleDto);
+  @Patch('/business/:businessId/update/:saleId')
+  update(
+    @Param('businessId') businessId: string,
+    @Param('saleId') saleId: string,
+    @Body() updateSaleDto: UpdateSaleDto,
+  ) {
+    return this.salesService.update(businessId, saleId, updateSaleDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.salesService.remove(+id);
+  @Delete('/business/:businessId/delete/:saleId')
+  remove(
+    @Param('businessId') businessId: string,
+    @Param('saleId') saleId: string,
+  ) {
+    return this.salesService.remove(businessId, saleId);
   }
 }
