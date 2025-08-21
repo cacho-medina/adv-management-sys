@@ -52,6 +52,10 @@ model User {
   
   // Relación N:N con Business a través de UserBusiness
   userBusinesses UserBusiness[]
+
+  // Relaciones con invitaciones
+  sentInvitations     BusinessInvitations[] @relation("InvitationsSent")
+  acceptedInvitations BusinessInvitations[] @relation("InvitationsAccepted")
 }
 
 model Profile {
@@ -80,6 +84,9 @@ model Business {
   phone      String?
   email      String?
   website    String?
+
+  // Relación con invitaciones
+  invitations BusinessInvitations[]
   
   // Relación N:N con User a través de UserBusiness
   userBusinesses UserBusiness[]
@@ -107,6 +114,49 @@ model UserBusiness {
   
 
   @@unique([userId, businessId]) // Evita duplicados
+}
+
+model BusinessInvitations {
+  id          String   @id @default(uuid())
+  
+  // Relación con el negocio
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId  String
+  
+  // Usuario que envía la invitación (owner/admin)
+  invitedBy   User     @relation("InvitationsSent", fields: [invitedById], references: [id])
+  invitedById String
+  
+  // Email del destinatario
+  email       String
+  
+  // Token único para la invitación
+  token       String   @unique
+  
+  // Rol que se asignará al empleado
+  role        Role     @default(EMPLOYEE)
+  
+  // Mensaje opcional de la invitación
+  message     String?
+  
+  // Control de expiración y uso
+  expiresAt   DateTime
+  isUsed      Boolean  @default(false)
+  usedAt      DateTime?
+  
+  // Usuario que aceptó la invitación (si ya fue usada)
+  acceptedBy  User?    @relation("InvitationsAccepted", fields: [acceptedById], references: [id])
+  acceptedById String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Índices para optimizar consultas
+  @@index([businessId])
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
 }
 
 enum ProductType {

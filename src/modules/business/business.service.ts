@@ -16,10 +16,15 @@ import {
   EmployeeResponseDto,
 } from './dto/business.dto';
 import { Role } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class BusinessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async createBusiness(userId: string, createBusinessDto: CreateBusinessDto) {
     const { name, description, address, phone, email, website, logo } =
@@ -318,60 +323,6 @@ export class BusinessService {
     }));
   }
 
-  async inviteEmployee(
-    businessId: string,
-    userId: string,
-    inviteDto: InviteEmployeeDto,
-  ): Promise<{ message: string }> {
-    // Solo propietarios y admins pueden invitar
-    await this.checkUserPermissions(businessId, userId, [
-      Role.OWNER,
-      Role.ADMIN,
-    ]);
-
-    // Verificar si el usuario ya existe
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: inviteDto.email },
-    });
-
-    if (existingUser) {
-      // Verificar si ya es empleado del negocio
-      const existingEmployee = await this.prisma.userBusiness.findUnique({
-        where: {
-          userId_businessId: {
-            userId: existingUser.id,
-            businessId,
-          },
-        },
-      });
-
-      if (existingEmployee) {
-        throw new BadRequestException(
-          'El usuario ya es empleado de este negocio',
-        );
-      }
-
-      // Agregar al negocio
-      await this.prisma.userBusiness.create({
-        data: {
-          userId: existingUser.id,
-          businessId,
-          role: inviteDto.role || Role.EMPLOYEE,
-        },
-      });
-
-      return {
-        message: 'Usuario agregado al negocio correctamente',
-      };
-    } else {
-      // TODO: Implementar sistema de invitaciones por email
-      // Por ahora, solo agregamos usuarios existentes
-      throw new BadRequestException(
-        'El usuario debe registrarse primero en el sistema',
-      );
-    }
-  }
-
   async updateSettings(
     businessId: string,
     userId: string,
@@ -433,6 +384,208 @@ export class BusinessService {
       createdAt: business.createdAt,
       userRole,
       employeeCount,
+    };
+  }
+
+  async inviteEmployee(
+    businessId: string,
+    userId: string,
+    inviteDto: InviteEmployeeDto,
+  ): Promise<{ message: string }> {
+    // Solo propietarios y admins pueden invitar
+    await this.checkUserPermissions(businessId, userId, [
+      Role.OWNER,
+      Role.ADMIN,
+    ]);
+
+    // Obtener información del negocio y usuario que invita
+    const [business, inviter] = await Promise.all([
+      this.prisma.business.findUnique({
+        where: { id: businessId },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { profile: true },
+      }),
+    ]);
+
+    if (!business || !inviter) {
+      throw new NotFoundException('Negocio o usuario no encontrado');
+    }
+
+    // Verificar si ya existe una invitación pendiente para este email
+    const existingInvitation = await this.prisma.businessInvitations.findFirst({
+      where: {
+        businessId,
+        email: inviteDto.email,
+        isUsed: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (existingInvitation) {
+      throw new BadRequestException(
+        'Ya existe una invitación pendiente para este email',
+      );
+    }
+
+    // Verificar si el usuario ya existe
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: inviteDto.email },
+    });
+
+    if (existingUser) {
+      // Verificar si ya es empleado del negocio
+      const existingEmployee = await this.prisma.userBusiness.findUnique({
+        where: {
+          userId_businessId: {
+            userId: existingUser.id,
+            businessId,
+          },
+        },
+      });
+
+      if (existingEmployee) {
+        throw new BadRequestException(
+          'El usuario ya es empleado de este negocio',
+        );
+      }
+
+      // Si el usuario existe pero no es empleado, crear invitación para que confirme
+      // Esto permite al usuario decidir si quiere unirse al negocio
+    }
+
+    // Generar token único
+    const token = randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // Expira en 7 días
+
+    // Crear la invitación
+    const invitation = await this.prisma.businessInvitations.create({
+      data: {
+        businessId,
+        invitedById: userId,
+        email: inviteDto.email,
+        token,
+        role: inviteDto.role || Role.EMPLOYEE,
+        message: inviteDto.message,
+        expiresAt,
+      },
+    });
+
+    // Enviar email de invitación
+    try {
+      await this.mailService.sendTemplateMail({
+        to: inviteDto.email,
+        subject: `Invitación para unirte a ${business.name}`,
+        template: 'employee-invitation',
+        context: {
+          businessName: business.name,
+          inviterName: inviter.name || inviter.email,
+          role: this.getRoleDisplayName(inviteDto.role || Role.EMPLOYEE),
+          customMessage: inviteDto.message,
+          token: invitation.token,
+        },
+      });
+
+      return {
+        message: 'Invitación enviada correctamente',
+      };
+    } catch (error) {
+      // Si falla el envío del email, eliminar la invitación
+      await this.prisma.businessInvitations.delete({
+        where: { id: invitation.id },
+      });
+
+      throw new BadRequestException('Error al enviar la invitación por email');
+    }
+  }
+
+  // Método auxiliar para obtener nombres de roles en español
+  private getRoleDisplayName(role: Role): string {
+    const roleNames = {
+      [Role.OWNER]: 'Propietario',
+      [Role.ADMIN]: 'Administrador',
+      [Role.EMPLOYEE]: 'Empleado',
+    };
+    return roleNames[role] || 'Empleado';
+  }
+
+  // Método para obtener invitaciones pendientes de un negocio
+  async getPendingInvitations(
+    businessId: string,
+    userId: string,
+  ): Promise<any[]> {
+    // Solo propietarios y admins pueden ver invitaciones
+    await this.checkUserPermissions(businessId, userId, [
+      Role.OWNER,
+      Role.ADMIN,
+    ]);
+
+    const invitations = await this.prisma.businessInvitations.findMany({
+      where: {
+        businessId,
+        isUsed: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      include: {
+        invitedBy: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return invitations.map((inv) => ({
+      id: inv.id,
+      email: inv.email,
+      role: inv.role,
+      message: inv.message,
+      invitedBy: inv.invitedBy.name || inv.invitedBy.email,
+      createdAt: inv.createdAt,
+      expiresAt: inv.expiresAt,
+    }));
+  }
+
+  // Método para cancelar una invitación
+  async cancelInvitation(
+    businessId: string,
+    userId: string,
+    invitationId: string,
+  ): Promise<{ message: string }> {
+    // Solo propietarios y admins pueden cancelar invitaciones
+    await this.checkUserPermissions(businessId, userId, [
+      Role.OWNER,
+      Role.ADMIN,
+    ]);
+
+    const invitation = await this.prisma.businessInvitations.findFirst({
+      where: {
+        id: invitationId,
+        businessId,
+        isUsed: false,
+      },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invitación no encontrada');
+    }
+
+    await this.prisma.businessInvitations.delete({
+      where: { id: invitationId },
+    });
+
+    return {
+      message: 'Invitación cancelada correctamente',
     };
   }
 }

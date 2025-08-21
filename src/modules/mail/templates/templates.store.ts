@@ -161,4 +161,85 @@ export const templates: Record<string, (ctx: any) => string> = {
 </html>
     `;
   },
+  'employee-invitation': (ctx) => {
+    return `
+    <html>
+      <head>
+        <meta charset='utf-8' />
+        <title>Invitación para unirte a ${ctx.businessName}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+          }
+          .content {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 0 0 5px 5px;
+          }
+          .button {
+            display: inline-block;
+            background-color: #2196F3;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 20px 0;
+          }
+          .role-badge {
+            background-color: #4CAF50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            text-transform: uppercase;
+          }
+        </style>
+      </head>
+      <body>
+        <div class='header'>
+          <h1>¡Te han invitado a unirte a ${ctx.businessName}!</h1>
+        </div>
+
+        <div class='content'>
+          <h2>Hola,</h2>
+          
+          <p><strong>${ctx.inviterName}</strong> te ha invitado a formar parte del equipo de <strong>${ctx.businessName}</strong> como <span class='role-badge'>${ctx.role}</span>.</p>
+          
+          ${ctx.customMessage ? `<p><em>"${ctx.customMessage}"</em></p>` : ''}
+          
+          <p>Para aceptar esta invitación y crear tu cuenta, haz clic en el siguiente enlace:</p>
+          
+          <a href='${process.env.FRONTEND_URL}/auth/accept-invitation?token=${ctx.token}' class='button'>
+            Aceptar Invitación
+          </a>
+          
+          <p><strong>Nota:</strong> Esta invitación expirará en 7 días.</p>
+          
+          <hr>
+          
+          <p>Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:</p>
+          <p style='word-break: break-all; color: #666;'>
+            ${process.env.FRONTEND_URL}/auth/accept-invitation?token=${ctx.token}
+          </p>
+        </div>
+        
+        <div style='text-align: center; margin-top: 20px; font-size: 12px; color: #666;'>
+          <p>Este correo fue enviado automáticamente. Si no esperabas esta invitación, puedes ignorar este mensaje.</p>
+        </div>
+      </body>
+    </html>
+    `;
+  },
 };

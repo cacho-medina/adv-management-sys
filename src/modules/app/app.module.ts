@@ -11,6 +11,7 @@ import { CategoriesModule } from '../categories/categories.module';
 import { BusinessModule } from '../business/business.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { SalesModule } from '../sales/sales.module';
+import { ClientsModule } from '../clients/clients.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SalesModule } from '../sales/sales.module';
     BusinessModule,
     OnboardingModule,
     SalesModule,
+    ClientsModule,
   ],
   controllers: [AppController],
 })

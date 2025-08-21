@@ -152,31 +152,40 @@ export class BusinessController {
   async inviteEmployee(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() inviteDto: InviteEmployeeDto,
-    // @Req() req: any,
+    @Req() req: any,
   ): Promise<{ message: string }> {
-    // const { user } = req;
-    // return this.businessService.inviteEmployee(id, user.sub, inviteDto);
-
-    // Temporal para testing
-    return this.businessService.inviteEmployee(id, 'temp-user-id', inviteDto);
+    const { user } = req;
+    return this.businessService.inviteEmployee(id, user.id, inviteDto);
   }
 
   /**
-   * Actualizar configuraciones del negocio
+   * Obtener invitaciones pendientes del negocio
    */
-  @Patch('/settings/:id')
+  @Get('/invitations/:id')
   @UseGuards(BusinessAccessGuard, RolesGuard)
   @BusinessAccess()
-  @Roles(Role.OWNER)
-  async updateSettings(
+  @Roles(Role.OWNER, Role.ADMIN)
+  async getPendingInvitations(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() settingsDto: BusinessSettingsDto,
-    // @Req() req: any,
-  ): Promise<{ message: string }> {
-    // const { user } = req;
-    // return this.businessService.updateSettings(id, user.sub, settingsDto);
+    @Req() req: any,
+  ): Promise<any[]> {
+    const { user } = req;
+    return this.businessService.getPendingInvitations(id, user.id);
+  }
 
-    // Temporal para testing
-    return this.businessService.updateSettings(id, 'temp-user-id', settingsDto);
+  /**
+   * Cancelar una invitación pendiente
+   */
+  @Delete('/invitations/:id/:invitationId')
+  @UseGuards(BusinessAccessGuard, RolesGuard)
+  @BusinessAccess()
+  @Roles(Role.OWNER, Role.ADMIN)
+  async cancelInvitation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('invitationId', ParseUUIDPipe) invitationId: string,
+    @Req() req: any,
+  ): Promise<{ message: string }> {
+    const { user } = req;
+    return this.businessService.cancelInvitation(id, user.id, invitationId);
   }
 }
