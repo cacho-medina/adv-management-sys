@@ -28,19 +28,40 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: any,
     done: VerifyCallback,
   ): Promise<any> {
-    const { name, emails, photos } = profile;
-    const user = {
-      email: emails[0].value,
-      name: name.givenName + ' ' + name.familyName,
-      picture: photos[0].value,
-      accessToken,
-      providerId: profile.id,
-    };
-
     try {
-      /* const validatedUser = await this.authService.validateOAuthLogin(user);
-      done(null, validatedUser); */
+      const { emails, photos, displayName, id, provider } = profile;
+
+      // Validar que el email existe
+      if (!emails || !emails[0] || !emails[0].value) {
+        console.error('No email found in Google profile');
+        return done(
+          new Error('No se pudo obtener el email del perfil de Google'),
+          null,
+        );
+      }
+
+      // Limpiar la URL de la foto si existe
+      let cleanPictureUrl = null;
+      if (photos && photos[0] && photos[0].value) {
+        cleanPictureUrl = photos[0].value.trim(); // Eliminar espacios
+        // Reemplazar caracteres escapados
+        cleanPictureUrl = cleanPictureUrl.replace(/\\u003d/g, '=');
+      }
+
+      const user = {
+        email: emails[0].value.trim(),
+        name: displayName,
+        picture: cleanPictureUrl,
+        accessToken,
+        provider: 'GOOGLE',
+        providerId: id,
+      };
+
+      const validatedUser = await this.authService.validateOAuthLogin(user);
+      done(null, validatedUser);
     } catch (error) {
+      console.error('Error in GoogleStrategy validate:', error);
+      console.error('Error stack:', error.stack);
       done(error, null);
     }
   }

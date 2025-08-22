@@ -281,4 +281,82 @@ export class AuthService {
 
     return { message: 'Contraseña actualizada correctamente' };
   }
+
+  async validateOAuthLogin(user: any) {
+    const { email, name, provider, providerId, picture } = user;
+
+    // Buscar si el usuario ya existe por email
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+      include: { profile: true },
+    });
+
+    if (existingUser) {
+      // Usuario existe - actualizar datos y loguear
+      const updatedUser = await this.prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          lastLoginAt: new Date(),
+          provider: provider,
+          providerId: providerId,
+          name: name || existingUser.name,
+          email: email,
+        },
+      });
+
+      // Generar token de acceso
+      const access_token = await this.generateJwtToken(updatedUser);
+
+      return {
+        access_token,
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          isEmailVerified: updatedUser.isEmailVerified,
+          provider: updatedUser.provider,
+        },
+        profile: existingUser.profile,
+        newUser: false,
+      };
+    } else {
+      // Usuario no existe - crear nuevo usuario y perfil
+      const newUser = await this.prisma.user.create({
+        data: {
+          email,
+          name,
+          provider: provider,
+          providerId: providerId,
+          isEmailVerified: true, // OAuth users have verified emails
+          password: null, // No password for OAuth users
+        },
+      });
+
+      // Crear perfil para el nuevo usuario
+      const newProfile = await this.prisma.profile.create({
+        data: {
+          userId: newUser.id,
+          username: email.split('@')[0], // Generate username from email
+          updatedAt: new Date(),
+          avatar: picture || null,
+        },
+      });
+
+      // Generar token de acceso
+      const access_token = await this.generateJwtToken(newUser);
+
+      return {
+        access_token,
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          isEmailVerified: newUser.isEmailVerified,
+          provider: newUser.provider,
+        },
+        profile: newProfile,
+        newUser: true,
+      };
+    }
+  }
 }

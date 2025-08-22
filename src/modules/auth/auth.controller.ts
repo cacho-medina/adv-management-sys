@@ -1,8 +1,18 @@
-import { Controller, Post, Query, Body, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Query,
+  Body,
+  Res,
+  UseGuards,
+  Get,
+  Req,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAccountDto, LoginDto } from './dto/create-auth.dto';
 import { Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
+import { GoogleAuthGuard } from './guards/google.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -52,5 +62,26 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.login(loginDto, res);
+  }
+
+  @Public()
+  @UseGuards(GoogleAuthGuard)
+  @Get('google/login')
+  async googleAuth() {}
+
+  @Public()
+  @UseGuards(GoogleAuthGuard)
+  @Get('google/callback')
+  async googleAuthConfirm(@Req() req: any, @Res() res: any) {
+    const userVerified = req.user;
+    // Redirigir al frontend con los datos
+    const queryParams = new URLSearchParams({
+      token: userVerified.access_token,
+      profile: JSON.stringify(userVerified.profile),
+    });
+
+    const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?${queryParams}`;
+
+    return res.redirect(redirectUrl);
   }
 }
