@@ -33,9 +33,6 @@ export class CreateClientDto {
   @IsString()
   @IsOptional()
   @MaxLength(20)
-  @Matches(/^[+]?[0-9\s\-()]+$/, {
-    message: 'Formato de teléfono inválido',
-  })
   phone?: string;
 
   @IsString()

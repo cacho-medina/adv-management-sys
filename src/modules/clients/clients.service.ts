@@ -22,15 +22,6 @@ export class ClientsService {
   ): Promise<{ message: string; client: ClientResponseDto }> {
     const { businessId, dni, name, email, phone, address } = createClientDto;
 
-    // Verificar que el negocio existe
-    const business = await this.prisma.business.findUnique({
-      where: { id: businessId },
-    });
-
-    if (!business) {
-      throw new NotFoundException('Negocio no encontrado');
-    }
-
     // Verificar DNI único si se proporciona
     if (dni) {
       const existingDni = await this.prisma.client.findFirst({
@@ -41,7 +32,9 @@ export class ClientsService {
       });
 
       if (existingDni) {
-        throw new ConflictException('Ya existe un cliente con este DNI en este negocio');
+        throw new ConflictException(
+          'Ya existe un cliente con este DNI en este negocio',
+        );
       }
     }
 
@@ -55,7 +48,9 @@ export class ClientsService {
       });
 
       if (existingEmail) {
-        throw new ConflictException('Ya existe un cliente con este email en este negocio');
+        throw new ConflictException(
+          'Ya existe un cliente con este email en este negocio',
+        );
       }
     }
 
@@ -87,20 +82,12 @@ export class ClientsService {
     search?: string,
     dni?: string,
   ): Promise<ClientListResponseDto> {
-    // Verificar que el negocio existe
-    const business = await this.prisma.business.findUnique({
-      where: { id: businessId },
-    });
-
-    if (!business) {
-      throw new NotFoundException('Negocio no encontrado');
-    }
-
     const skip = (page - 1) * limit;
 
     // Construir filtros de búsqueda
     const where: any = {
       businessId,
+      isDeleted: false,
     };
 
     if (search) {
@@ -204,7 +191,9 @@ export class ClientsService {
       });
 
       if (existingDni) {
-        throw new ConflictException('Ya existe un cliente con este DNI en este negocio');
+        throw new ConflictException(
+          'Ya existe un cliente con este DNI en este negocio',
+        );
       }
     }
 
@@ -219,7 +208,9 @@ export class ClientsService {
       });
 
       if (existingEmail) {
-        throw new ConflictException('Ya existe un cliente con este email en este negocio');
+        throw new ConflictException(
+          'Ya existe un cliente con este email en este negocio',
+        );
       }
     }
 
@@ -274,25 +265,36 @@ export class ClientsService {
 
     // Verificar si el cliente tiene ventas asociadas
     if (client._count.sales > 0) {
-      throw new BadRequestException(
-        'No se puede eliminar un cliente que tiene ventas asociadas',
-      );
-    }
+      try {
+        await this.prisma.client.update({
+          where: { id },
+          data: { isDeleted: true },
+        });
+        return {
+          message: 'Cliente establecido como eliminado exitosamente',
+        };
+      } catch (error) {
+        throw new BadRequestException('Error al eliminar el cliente');
+      }
+    } else {
+      try {
+        await this.prisma.client.delete({
+          where: { id },
+        });
 
-    try {
-      await this.prisma.client.delete({
-        where: { id },
-      });
-
-      return {
-        message: 'Cliente eliminado exitosamente',
-      };
-    } catch (error) {
-      throw new BadRequestException('Error al eliminar el cliente');
+        return {
+          message: 'Cliente eliminado exitosamente',
+        };
+      } catch (error) {
+        throw new BadRequestException('Error al eliminar el cliente');
+      }
     }
   }
 
-  async getClientStats(id: string, businessId: string): Promise<ClientStatsDto> {
+  async getClientStats(
+    id: string,
+    businessId: string,
+  ): Promise<ClientStatsDto> {
     const client = await this.prisma.client.findFirst({
       where: {
         id,
@@ -324,22 +326,26 @@ export class ClientsService {
     const totalAmount = client.sales.reduce((sum, sale) => sum + sale.total, 0);
     const averageOrderValue = totalSales > 0 ? totalAmount / totalSales : 0;
 
-    const salesDates = client.sales.map(sale => sale.createdAt).sort();
+    const salesDates = client.sales.map((sale) => sale.createdAt).sort();
     const firstPurchaseDate = salesDates.length > 0 ? salesDates[0] : undefined;
-    const lastPurchaseDate = salesDates.length > 0 ? salesDates[salesDates.length - 1] : undefined;
+    const lastPurchaseDate =
+      salesDates.length > 0 ? salesDates[salesDates.length - 1] : undefined;
 
     // Calcular productos favoritos
     const productCounts = new Map<string, { name: string; count: number }>();
-    
-    client.sales.forEach(sale => {
-      sale.items.forEach(item => {
+
+    client.sales.forEach((sale) => {
+      sale.items.forEach((item) => {
         const productId = item.product.id;
         const productName = item.product.name;
-        
+
         if (productCounts.has(productId)) {
           productCounts.get(productId)!.count += item.quantity;
         } else {
-          productCounts.set(productId, { name: productName, count: item.quantity });
+          productCounts.set(productId, {
+            name: productName,
+            count: item.quantity,
+          });
         }
       });
     });
@@ -363,7 +369,10 @@ export class ClientsService {
     };
   }
 
-  async findByDni(dni: string, businessId: string): Promise<ClientResponseDto | null> {
+  async findByDni(
+    dni: string,
+    businessId: string,
+  ): Promise<ClientResponseDto | null> {
     const client = await this.prisma.client.findFirst({
       where: {
         dni,
@@ -384,7 +393,10 @@ export class ClientsService {
     return client ? this.formatClientResponse(client) : null;
   }
 
-  async getTopCustomers(businessId: string, limit: number = 10): Promise<ClientResponseDto[]> {
+  async getTopCustomers(
+    businessId: string,
+    limit: number = 10,
+  ): Promise<ClientResponseDto[]> {
     const clients = await this.prisma.client.findMany({
       where: { businessId },
       include: {
@@ -401,20 +413,21 @@ export class ClientsService {
 
     // Calcular total de compras por cliente y ordenar
     const clientsWithTotals = clients
-      .map(client => ({
+      .map((client) => ({
         ...client,
         totalPurchases: client.sales.reduce((sum, sale) => sum + sale.total, 0),
       }))
       .sort((a, b) => b.totalPurchases - a.totalPurchases)
       .slice(0, limit);
 
-    return clientsWithTotals.map(client => this.formatClientResponse(client));
+    return clientsWithTotals.map((client) => this.formatClientResponse(client));
   }
 
   private formatClientResponse(client: any): ClientResponseDto {
-    const totalPurchases = client.sales ? 
-      client.sales.reduce((sum: number, sale: any) => sum + sale.total, 0) : 0;
-    
+    const totalPurchases = client.sales
+      ? client.sales.reduce((sum: number, sale: any) => sum + sale.total, 0)
+      : 0;
+
     return {
       id: client.id,
       dni: client.dni,

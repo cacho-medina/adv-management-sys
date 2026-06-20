@@ -96,6 +96,8 @@ model Business {
   expenses   Expense[] // Relación 1:N - un negocio puede tener muchos gastos
   clients    Client[] // Relación 1:N - un negocio puede tener muchos clientes
   categories Category[] // Categorías específicas del negocio
+  payments   Payment[] //pagos recibidos
+  discounts   SaleDiscount[] // descuentos aplicados
   createdAt  DateTime @default(now())
 }
 
@@ -256,20 +258,29 @@ model Client {
   sales      Sale[]   // Relación 1:N - un cliente puede tener muchas ventas
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  isDeleted  Boolean  @default(false) // Eliminación lógica
 }
 
 
 model Sale {
-  id         String   @id @default(uuid())
-  total      Float
-  status     SaleStatus @default(PENDING)
-  business   Business @relation(fields: [businessId], references: [id])
-  businessId String
-  client     Client?  @relation(fields: [clientId], references: [id]) // Opcional - venta sin cliente
-  clientId   String?
-  items      SaleItem[] // Relación 1:N - una venta puede tener muchos items
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(uuid())
+  subtotal     Float    // Suma de items sin descuentos
+  discountType DiscountType? // Tipo de descuento aplicado
+  discountValue Float?   // Valor del descuento
+  total        Float    // Precio final después de descuentos
+  status       SaleStatus @default(PENDING)
+  
+  business     Business @relation(fields: [businessId], references: [id])
+  businessId   String
+  client       Client?  @relation(fields: [clientId], references: [id])
+  clientId     String?
+  
+  items        SaleItem[]
+  payments     Payment[] // Pagos realizados
+  discounts    SaleDiscount[] // Descuentos aplicados (para casos complejos)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model SaleItem {
@@ -281,6 +292,32 @@ model SaleItem {
   product   Product @relation(fields: [productId], references: [id])
   productId String
   createdAt DateTime @default(now())
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  reference     String?       // Número de referencia, transacción, etc.
+  notes         String?       // Notas adicionales
+  
+  // Relación con Sale
+  sale          Sale          @relation(fields: [saleId], references: [id])
+  saleId        String
+  
+  // Relación con Business
+  business      Business      @relation(fields: [businessId], references: [id])
+  businessId    String
+  
+  // Campos de auditoría
+  paidAt        DateTime?     // Fecha real del pago
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([saleId])
+  @@index([businessId])
+  @@index([status])
 }
 
 model Expense {
@@ -308,4 +345,52 @@ enum ExpenseType {
   SUPPLIES    // Suministros
   MARKETING   // Marketing
   OTHER       // Otros
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  DIGITAL_WALLET
+  CHECK
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE   // Porcentaje (ej: 10%)
+  FIXED_AMOUNT // Monto fijo (ej: $50)
+  BUY_X_GET_Y  // Promociones especiales
+  COUPON       // Cupón de descuento
+  LOYALTY      // Descuento por fidelidad
+  BULK         // Descuento por volumen
+}
+
+model SaleDiscount {
+  id           String      @id @default(uuid())
+  type         DiscountType
+  value        Float       // Valor del descuento
+  description  String?     // Descripción del descuento
+  couponCode   String?     // Código de cupón si aplica
+  
+  // Relación con Sale
+  sale         Sale        @relation(fields: [saleId], references: [id])
+  saleId       String
+  
+  // Relación con Business
+  business     Business    @relation(fields: [businessId], references: [id])
+  businessId   String
+  
+  createdAt    DateTime    @default(now())
+  
+  @@index([saleId])
+  @@index([couponCode])
 }

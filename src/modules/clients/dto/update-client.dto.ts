@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateClientDto } from './create-client.dto';
-import { OmitType } from '@nestjs/mapped-types';
+import { IsUUID } from 'class-validator';
 
 /*
 
@@ -11,6 +11,7 @@ import { OmitType } from '@nestjs/mapped-types';
 
 */
 
-export class UpdateClientDto extends PartialType(
-  OmitType(CreateClientDto, ['businessId'] as const),
-) {}
+export class UpdateClientDto extends PartialType(CreateClientDto) {
+  @IsUUID()
+  id: string;
+}

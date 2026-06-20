@@ -41,18 +41,15 @@ export class ClientsController {
   @Post('/business/:businessId/new')
   @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   async create(
-    @Param('businessId', ParseUUIDPipe) businessId: string,
     @Body() createClientDto: CreateClientDto,
   ): Promise<{ message: string; client: ClientResponseDto }> {
-    // Asegurar que el businessId del parámetro coincida con el del DTO
-    createClientDto.businessId = businessId;
     return this.clientsService.create(createClientDto);
   }
 
   /**
    * Obtener clientes por negocio con filtros y paginación
    */
-  @Get('business/:businessId')
+  @Get('business/:businessId/list')
   @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   async findAllByBusiness(
     @Param('businessId', ParseUUIDPipe) businessId: string,
@@ -73,7 +70,7 @@ export class ClientsController {
   /**
    * Obtener un cliente específico
    */
-  @Get('/business/:businessId/:id')
+  @Get('/business/:businessId/clientId/:id')
   @Roles(Role.OWNER, Role.ADMIN, Role.EMPLOYEE)
   @UseGuards(BusinessAccessGuard)
   @BusinessAccess()
@@ -94,13 +91,14 @@ export class ClientsController {
     @Param('businessId', ParseUUIDPipe) businessId: string,
     @Body() updateClientDto: UpdateClientDto,
   ): Promise<{ message: string; client: ClientResponseDto }> {
+    console.log('llego');
     return this.clientsService.update(id, businessId, updateClientDto);
   }
 
   /**
    * Eliminar un cliente (soft delete)
    */
-  @Delete('/business/:businessId/delete/:id')
+  @Patch('/business/:businessId/delete/:id')
   @Roles(Role.OWNER, Role.ADMIN)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
